@@ -42,8 +42,8 @@ _nmi:		jp ram_nmi_handler
 
 		; ROM descriptor table
 		.org	0x6b
-		.ascii 	"MOSKIT"
-		.db  0			; Descriptor table version
+		.ascii 	"MOS"
+		.db  1			; Descriptor table version
         	.d24 _f_chdir
         	.d24 _f_chdrive
         	.d24 _f_close
