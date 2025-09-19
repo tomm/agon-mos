@@ -8,6 +8,7 @@
 
 		.global _reset
 		.global __vector_table
+		.global ram_rst_10_handler
 
 		.org 0
 _reset:	

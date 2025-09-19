@@ -206,7 +206,7 @@ mos_api_block1_start:	DW	mos_api_getkey		; 0x00
 			DW  mos_api_not_implemented ; 0x5e
 			DW  mos_api_not_implemented ; 0x5f
 
-			DW  mos_api_not_implemented ; 0x60
+			DW  mos_api_inject_uart0_rx_byte ; 0x60
 			DW  mos_api_not_implemented ; 0x61
 			DW  mos_api_not_implemented ; 0x62
 			DW  mos_api_not_implemented ; 0x63
@@ -988,6 +988,18 @@ mos_api_flseek:		PUSH 	DE		; UINT32 offset (msb)
 			POP	HL
 			POP	DE
 			RET
+
+
+; Inject a byte into the uart0 receiver. This
+; simulates bytes being received from the VDP
+; Params:
+;   C: Byte to insert.
+mos_api_inject_uart0_rx_byte:
+			LD	A, C
+			LD	HL, _vdp_protocol_data
+			CALL	vdp_protocol
+			RET
+
 
 ; Open a file
 ; HLU: Pointer to a blank FIL struct

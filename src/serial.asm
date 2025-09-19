@@ -253,7 +253,7 @@ putch:			PUSH	IY				; Standard C prologue
 			LD	A, (IY+6)			; INT ch (least significant byte)
 			LD	HL, 0				; HLU: The return value
 			LD	L, A 
-			CALL	UART0_serial_PUTCH		; Output the character
+			CALL.LIL	ram_rst_10_handler		; Output the character
 
 			LD 	SP, IY				; Standard epilogue
 			POP	IY

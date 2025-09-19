@@ -39,7 +39,7 @@ rst_18_handler:	LD	E, A 			; Preserve the delimiter
 ; Standard loop mode
 ;
 rst_18_handler_0:	LD 	A, (HL)			; Fetch the character
-			CALL	UART0_serial_PUTCH	; Output
+			CALL.LIL	ram_rst_10_handler	; Output
 			INC 	HL 			; Increment the buffer pointer
 			DEC	BC 			; Decrement the loop counter
 			LD	A, B 			; Is it 0?
@@ -52,7 +52,7 @@ rst_18_handler_0:	LD 	A, (HL)			; Fetch the character
 rst_18_handler_1:	LD 	A, (HL)			; Fetch the character
 			CP 	E 			; Is it the delimiter?
 			RET.L	Z 			; Yes, so return
-			CALL	UART0_serial_PUTCH	; Output
+			CALL.LIL	ram_rst_10_handler	; Output
 			INC 	HL 			; Increment the buffer pointer
 			JR 	rst_18_handler_1	; Loop
 
