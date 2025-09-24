@@ -1563,6 +1563,46 @@ UINT24	mos_DIRFallback(char * path, BOOL longListing, BOOL hideVolumeInfo) {
 	return fr;
 }
 
+static uint8_t paginated_print_row;
+void start_paginated_printf(void)
+{
+	paginated_print_row = 0;
+}
+void end_paginated_printf(void)
+{
+	printf("%d lines\n", paginated_print_row);
+}
+
+extern void waitKey();
+extern uint8_t scrrows;
+
+void paginated_printf(const char *format, ...) __attribute__((format(printf, 1, 2)));
+void paginated_printf(const char *format, ...) {
+	va_list ap;
+	va_start(ap, format);
+	int size = vsnprintf(NULL, 0, format, ap) + 1;
+	if (size > 0) {
+		va_end(ap);
+		va_start(ap, format);
+		char buf[size + 1];
+		vsnprintf(buf, size, format, ap);
+
+		for (int i=0; i<size; i++) {
+			putch(buf[i]);
+			if (buf[i] == '\n') {
+				paginated_print_row = paginated_print_row + 1;
+				if (paginated_print_row >= scrrows - 1) {
+					printf("--more--");
+					waitKey();
+					paginated_print_row = 0;
+					putch('\r');
+				}
+			}
+		}
+	}
+	va_end(ap);
+}
+
 
 // Directory listing
 // Returns:
@@ -1661,25 +1701,27 @@ UINT24 mos_DIR(char* inputPath, BOOL longListing) {
     fno_num = 0;
     fr = f_opendir(&dir, dirPath);
 
+    start_paginated_printf();
+
     if (fr == FR_OK) {
-        printf("Volume: ");
+        paginated_printf("Volume: ");
         if (strlen(str) > 0) {
-            printf("%s", str);
+            paginated_printf("%s", str);
         } else {
-            printf("<No Volume Label>");
+            paginated_printf("<No Volume Label>");
         }
-        printf("\n\r");
+        paginated_printf("\n\r");
 
         if (strcmp(dirPath, ".") == 0) {
             f_getcwd(cwd, sizeof(cwd));
-            printf("Directory: %s\r\n\r\n", cwd);
+            paginated_printf("Directory: %s\r\n\r\n", cwd);
         } else
-            printf("Directory: %s\r\n\r\n", dirPath);
+            paginated_printf("Directory: %s\r\n\r\n", dirPath);
 
 		fr = get_num_dirents(dirPath, &num_dirents);
 
 		if (num_dirents == 0) {
-			printf("No files found\r\n");
+			paginated_printf("No files found\r\n");
 			goto cleanup;
 		}
 
@@ -1746,20 +1788,20 @@ UINT24 mos_DIR(char* inputPath, BOOL longListing) {
 
                 if (useColour) {
                     BOOL isDir = fno->fattrib & AM_DIR;
-                    printf("\x11%c%04d/%02d/%02d\t%02d:%02d %c %*lu \x11%c%s\n\r", textFg, yr + 1980, mo, da, hr, mi, isDir ? 'D' : ' ', 8, fno->fsize, isDir ? dirColour : fileColour, fno->fname);
+                    paginated_printf("\x11%c%04d/%02d/%02d\t%02d:%02d %c %*lu \x11%c%s\r\n", textFg, yr + 1980, mo, da, hr, mi, isDir ? 'D' : ' ', 8, fno->fsize, isDir ? dirColour : fileColour, fno->fname);
                 } else {
-                    printf("%04d/%02d/%02d\t%02d:%02d %c %*lu %s\n\r", yr + 1980, mo, da, hr, mi, fno->fattrib & AM_DIR ? 'D' : ' ', 8, fno->fsize, fno->fname);
+                    paginated_printf("%04d/%02d/%02d\t%02d:%02d %c %*lu %s\r\n", yr + 1980, mo, da, hr, mi, fno->fattrib & AM_DIR ? 'D' : ' ', 8, fno->fsize, fno->fname);
                 }
             } else {
                 if (col == maxCols) {
                     col = 0;
-                    printf("\r\n");
+                    paginated_printf("\r\n");
                 }
 
                 if (useColour) {
-                    printf("\x11%c%-*s", fno->fattrib & AM_DIR ? dirColour : fileColour, col == (maxCols - 1) ? longestFilename - 1 : longestFilename, fno->fname);
+                    paginated_printf("\x11%c%-*s", fno->fattrib & AM_DIR ? dirColour : fileColour, col == (maxCols - 1) ? longestFilename - 1 : longestFilename, fno->fname);
                 } else {
-                    printf("%-*s", col == (maxCols - 1) ? longestFilename - 1 : longestFilename, fno->fname);
+                    paginated_printf("%-*s", col == (maxCols - 1) ? longestFilename - 1 : longestFilename, fno->fname);
                 }
                 col++;
             }
@@ -1768,12 +1810,12 @@ UINT24 mos_DIR(char* inputPath, BOOL longListing) {
     }
 
     if (!longListing) {
-        printf("\r\n");
+        paginated_printf("\r\n");
     }
     umm_free(fnos);
 
     if (useColour) {
-        printf("\x11%c", textFg);
+        paginated_printf("\x11%c", textFg);
     }
 
 cleanup:
