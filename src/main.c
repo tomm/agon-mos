@@ -36,7 +36,6 @@
 #include <string.h>
 
 #include "defines.h"
-#include "version.h"
 #include "config.h"
 #include "uart.h"
 #include "spi.h"
@@ -47,6 +46,7 @@
 #include "mos.h"
 #include "i2c.h"
 #include "umm_malloc.h"
+#include "bootmsg.h"
 
 extern volatile BYTE scrcolours, scrpixelIndex;  // In globals.asm
 
@@ -105,51 +105,6 @@ static void init_interrupts(void) {
 	set_vector(I2C_IVECT, i2c_handler);			// 0x1C
 }
 
-static uint8_t quickrand(void) {
-	uint8_t out;
-	asm volatile("ld a,r\n":"=%a"(out));
-	return out;
-}
-
-void rainbow_msg(char* msg) {
-	BYTE i = quickrand() & (scrcolours - 1);
-	if (strcmp(msg, "Rainbow") != 0) {
-		printf("%s", msg);
-		return;
-	}
-	if (i == 0)
-		i++;
-	for (; *msg; msg++) {
-		putch(17);
-		putch(i);
-		putch(*msg);
-		i = (i + 1 < scrcolours) ? i + 1 : 1;
-	}
-	putch(17);
-	putch(15);
-}
-
-void bootmsg(void) {
-	printf("Agon ");
-	rainbow_msg(VERSION_VARIANT);
-	printf(" MOS Version %d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
-	#if VERSION_CANDIDATE > 0
-		printf(" %s%d", VERSION_TYPE, VERSION_CANDIDATE);
-	#endif
-	// Show version subtitle, if we have one
-	#ifdef VERSION_SUBTITLE
-		printf(" ");
-		rainbow_msg(VERSION_SUBTITLE);
-	#endif
-	// Show build if defined (intended to be auto-generated string from build script from git commit hash)
-	#ifdef VERSION_BUILD
-		printf(" Build %s", VERSION_BUILD);
-	#endif
-
-	printf("\n\r\n\r");
-}
-
-
 // The main loop
 //
 int main(void) {
@@ -189,7 +144,7 @@ int main(void) {
 		putch(0x0A);
 	}
 
-	bootmsg();
+	mos_bootmsg();
 
 	mos_mount();									// Mount the SD card
 

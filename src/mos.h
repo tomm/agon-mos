@@ -64,7 +64,6 @@ typedef enum {
 } MOSRESULT;
 
 void 	mos_error(int error);
-
 BYTE	mos_getkey(void);
 UINT24	mos_input(char * buffer, int bufferLength);
 t_mosCommand	*mos_getCommand(char * ptr);
