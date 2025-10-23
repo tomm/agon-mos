@@ -27,6 +27,7 @@
 #include "timer.h"
 #include "mos_editor.h"
 #include "umm_malloc.h"
+#include "keyboard_buffer.h"
 
 extern volatile BYTE vpd_protocol_flags;		// In globals.asm
 extern volatile BYTE keyascii;					// In globals.asm
@@ -167,16 +168,6 @@ BOOL deleteCharacter(char *buffer, int insertPos, int len) {
 		return 1;
 	}	
 	return 0;
-}
-
-// Wait for a key to be pressed
-//
-void waitKey() {
-	BYTE	c;
-	do {
-		c = keycount;				
-		while(c == keycount);		// Wait for a key event
-	} while (keydown == 0);			// Loop until we get a key down value (keydown = 1)
 }
 
 // handle HOME
@@ -435,11 +426,12 @@ UINT24 mos_EDITLINE(char * buffer, int bufferLength, UINT8 flags) {
 	// Loop until an exit key is pressed
 	//
 	while (keyr == 0) {
+		struct keyboard_event_t ev;
 		BYTE historyAction = 0;
 		len = strlen(buffer);
-		waitKey();
-		keya = keyascii;
-		keyc = keycode;
+		kbuf_wait_keydown(&ev);
+		keya = ev.ascii;
+		keyc = ev.vkey;
 		switch (keyc) {
 			//
 			// First any extended (non-ASCII keys)

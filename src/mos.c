@@ -47,6 +47,7 @@
 #include "defines.h"
 #include "mos.h"
 #include "config.h"
+#include "keyboard_buffer.h"
 #include "mos_editor.h"
 #include "uart.h"
 #include "clock.h"
@@ -920,6 +921,7 @@ int mos_cmdJMP(char *ptr) {
 	};
 	dest = (void *)addr;
 	dest();
+	kbuf_clear();
 	return 0;
 }
 
@@ -1575,11 +1577,11 @@ void end_paginated_printf(void)
 	printf("%d lines\n", paginated_print_row);
 }
 
-extern void waitKey();
 extern uint8_t scrrows;
 
 void paginated_printf(const char *format, ...) __attribute__((format(printf, 1, 2)));
 void paginated_printf(const char *format, ...) {
+	struct keyboard_event_t ev;
 	va_list ap;
 	va_start(ap, format);
 	int size = vsnprintf(NULL, 0, format, ap) + 1;
@@ -1595,7 +1597,7 @@ void paginated_printf(const char *format, ...) {
 				paginated_print_row = paginated_print_row + 1;
 				if (paginated_print_row >= scrrows - 1) {
 					printf("--more--");
-					waitKey();
+					kbuf_wait_keydown(&ev);
 					paginated_print_row = 0;
 					putch('\r');
 				}

@@ -29,6 +29,7 @@
 			
 			XDEF	vdp_protocol
 
+			XREF	kbuf_append
 			XREF	_keyascii
 			XREF	_keycode
 			XREF	_keymods
@@ -169,7 +170,12 @@ vdp_protocol_GP:	LD	A, (_vdp_protocol_data + 0)
 ; Keyboard Data
 ; Received after a keypress event in the VPD
 ;
-vdp_protocol_KEY:	LD	HL, (_user_kbvector)		; If a user kbvector is set, call it
+vdp_protocol_KEY:	
+			; Store event in keyboard event buffer
+			LD	DE, _vdp_protocol_data
+			call kbuf_append
+
+			LD	HL, (_user_kbvector)		; If a user kbvector is set, call it
 			LD	DE, 0
 			OR	A
 			SBC	HL, DE

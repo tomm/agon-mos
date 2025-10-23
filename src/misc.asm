@@ -33,6 +33,7 @@
 			XDEF	_timer0_delay
 
 			XREF	_callSM
+			XREF	kbuf_clear
 
 ; Switch on A - lookup table immediately after call
 ;  A: Index into lookup table
@@ -150,6 +151,9 @@ _execSM:		CALL	_callSM		; Call the subroutine
 			POP 	AF
 			LD	SP, IY          ; Standard epilogue
 			POP	IY
+
+			CALL	_kbuf_clear	; Don't leave dirty keyboard buffer
+
 			RET	
 
 ; Wait for timer0 to hit 0
