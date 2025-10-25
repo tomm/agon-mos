@@ -36,7 +36,7 @@
 			XREF	SET_AHL24
 			XREF	GET_AHL24
 			XREF	SET_ADE24
-
+			XREF	kbuf_remove
 			XREF	_mos_OSCLI		; In mos.c
 			XREF	_mos_EDITLINE
 			XREF	_mos_LOAD
@@ -81,6 +81,7 @@
 			XREF	_vpd_protocol_flags
 			XREF	_user_kbvector
 			XREF	_keymap
+			XREF	ram_rst_08_handler
 
 			XREF	_f_open			; In ff.c
 			XREF	_f_close
@@ -207,8 +208,8 @@ mos_api_block1_start:	DW	mos_api_getkey		; 0x00
 			DW  mos_api_not_implemented ; 0x5f
 
 			DW  mos_api_inject_uart0_rx_byte ; 0x60
-			DW  mos_api_not_implemented ; 0x61
-			DW  mos_api_not_implemented ; 0x62
+			DW  mos_api_setresetvector  ; 0x61
+			DW  mos_api_pollkeyboardevent ; 0x62
 			DW  mos_api_not_implemented ; 0x63
 			DW  mos_api_not_implemented ; 0x64
 			DW  mos_api_not_implemented ; 0x65
@@ -756,6 +757,38 @@ mos_api_setintvector:	LD	A, E
 			POP	DE 
 			POP	DE
 			RET 
+
+; Set a reset vector
+; HLU: Pointer to the interrupt vector (24-bit pointer)
+;   E: Vector # to set (valid values: 0x8, 0x10, 0x18, ..., 0x38)
+; Returns:
+; HLU: Pointer to the previous vector
+mos_api_setresetvector:
+			PUSH	BC
+			PUSH	DE
+
+			PUSH	HL
+			LD	A, E
+
+			; A = (E-8)>>1 + 1
+			SUB	8
+			OR	A	; Clear carry flag
+			RRA
+			INC	A	; Skip 'jp' instruction
+
+			LD	DE,0
+			LD	E,A
+			LD	HL,ram_rst_08_handler
+			ADD	HL,DE
+			LD	DE,(HL)	; Load old vector
+			POP	BC	; New vector
+
+			LD	(HL),BC	; Store new vector
+			EX	DE,HL	; Old vec to HL
+
+			POP	DE
+			POP	BC
+			RET
 			
 ; Set a VDP keyboard packet receiver callback
 ;   C: If non-zero then set the top byte of HLU(callback address)  to MB (for ADL=0 callers)
@@ -780,6 +813,28 @@ mos_api_setkbvector:	PUSH	DE
 ; 
 mos_api_getkbmap:	LD	IX, _keymap
 			RET 
+
+; Poll for next event in keyboard buffer.
+;   DEU - Address of 4-byte buffer to write the event to
+; Return:
+;   A=0 IF no event
+;   A=1 IF event
+;   (DE+0) - Event ASCII value
+;   (DE+1) - Event keymods (alt, ctrl, etc)
+;   (DE+2) - Event FabGL vkey
+;   (DE+3) - 0=Key Up, 1=Key Down
+mos_api_pollkeyboardevent:
+			PUSH	BC
+			PUSH	DE
+			PUSH	HL
+			CALL	kbuf_remove
+			POP	HL
+			POP	DE
+			POP	BC
+			LD	A,1
+			RET	NZ
+			XOR	A
+			RET
 
 ; Open the I2C bus as master
 ;   C: Frequency ID

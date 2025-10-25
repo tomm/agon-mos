@@ -4,6 +4,7 @@
 		.global _kbuf_wait_keydown
 		.global _kbuf_clear
 		.global kbuf_append
+		.global kbuf_remove
 
 _kbuf_wait_keydown:
 		push ix
