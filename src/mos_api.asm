@@ -210,7 +210,7 @@ mos_api_block1_start:	DW	mos_api_getkey		; 0x00
 			DW  mos_api_inject_uart0_rx_byte ; 0x60
 			DW  mos_api_setresetvector  ; 0x61
 			DW  mos_api_pollkeyboardevent ; 0x62
-			DW  mos_api_not_implemented ; 0x63
+			DW  mos_api_startfbconsole ; 0x63
 			DW  mos_api_not_implemented ; 0x64
 			DW  mos_api_not_implemented ; 0x65
 			DW  mos_api_not_implemented ; 0x66
@@ -763,6 +763,7 @@ mos_api_setintvector:	LD	A, E
 ;   E: Vector # to set (valid values: 0x8, 0x10, 0x18, ..., 0x38)
 ; Returns:
 ; HLU: Pointer to the previous vector
+; A: zero on success (always - to differentiate from 'not implemented')
 mos_api_setresetvector:
 			PUSH	BC
 			PUSH	DE
@@ -788,6 +789,7 @@ mos_api_setresetvector:
 
 			POP	DE
 			POP	BC
+			XOR	A
 			RET
 			
 ; Set a VDP keyboard packet receiver callback
@@ -835,6 +837,22 @@ mos_api_pollkeyboardevent:
 			RET	NZ
 			XOR	A
 			RET
+
+; Switch MOS console output to a framebuffer. Framebuffer
+; is assumed to be 8 bits per pixel RGB332.
+;   HL - Base address of framebuffer
+;   DE - Screen width (pixels)
+;   BC - Screen height (pixels)
+; Calling with HL=0 will restore the VDP console
+mos_api_startfbconsole:
+			push	bc
+			push	de
+			push	hl
+			call	_console_enable_fb
+			pop	hl
+			pop	de
+			pop	bc
+			ret
 
 ; Open the I2C bus as master
 ;   C: Frequency ID

@@ -28,6 +28,7 @@
 #include "mos_editor.h"
 #include "umm_malloc.h"
 #include "keyboard_buffer.h"
+#include "console.h"
 
 extern volatile BYTE vpd_protocol_flags;		// In globals.asm
 extern volatile BYTE keyascii;					// In globals.asm
@@ -48,43 +49,10 @@ static char	* cmd_history[cmd_historyDepth];
 
 char *hotkey_strings[12] = {}; 
 
-// Get the current cursor position from the VPD
-//
-void getCursorPos() {
-	vpd_protocol_flags &= 0xFE;					// Clear the semaphore flag
-	putch(23);									// Request the cursor position
-	putch(0);
-	putch(VDP_cursor);
-	wait_VDP(0x01);								// Wait until the semaphore has been set, or a timeout happens
-}
-
-// Get the current screen dimensions from the VDU
-//
-void getModeInformation() {
-	vpd_protocol_flags &= 0xEF;					// Clear the semaphore flag
-	putch(23);
-	putch(0);
-	putch(VDP_mode);
-	wait_VDP(0x10);								// Wait until the semaphore has been set, or a timeout happens
-}
-
-// Get palette entry
-//
-void readPalette(BYTE entry, BOOL wait) {
-	vpd_protocol_flags &= 0xFB;					// Clear the semaphore flag
-	putch(23);
-	putch(0);
-	putch(VDP_palette);
-	putch(entry);
-	if (wait) {
-		wait_VDP(0x04);							// Wait until the semaphore has been set, or a timeout happens
-	}
-}
-
 // Move cursor left
 //
 void doLeftCursor() {
-	getCursorPos();
+	active_console->get_cursor_pos();
 	if(cursorX > 0) {
 		putch(0x08);
 	}
@@ -100,7 +68,7 @@ void doLeftCursor() {
 // Move Cursor Right
 // 
 void doRightCursor() {
-	getCursorPos();
+	active_console->get_cursor_pos();
 	if(cursorX < (scrcols - 1)) {
 		putch(0x09);
 	}
@@ -413,7 +381,7 @@ UINT24 mos_EDITLINE(char * buffer, int bufferLength, UINT8 flags) {
 	int  len = 0;					// Length of current input
 	history_no = history_size;		// Ensure our current "history" is the end of the list
 
-	getModeInformation();			// Get the current screen dimensions
+	active_console->get_mode_information();			// Get the current screen dimensions
 	
 	if (clear) {					// Clear the buffer as required
 		buffer[0] = 0;	

@@ -16,8 +16,6 @@
 #define cmd_historyDepth	16
 
 UINT24	mos_EDITLINE(char * filename, int bufferLength, UINT8 clear);
-void getModeInformation();
-void readPalette(BYTE entry, BOOL wait);
 
 void editHistoryInit();
 void editHistoryPush(char *buffer);

@@ -55,6 +55,7 @@
 #include "strings.h"
 #include "umm_malloc.h"
 #include "bootmsg.h"
+#include "console.h"
 #if DEBUG > 0
 # include "tests.h"
 #endif /* DEBUG */
@@ -1692,10 +1693,10 @@ UINT24 mos_DIR(char* inputPath, BOOL longListing) {
     }
 
     if (useColour) {
-        readPalette(128, TRUE);
+        active_console->read_palette(128, TRUE);
         textFg = scrpixelIndex;
         fileColour = textFg;
-        readPalette(129, TRUE);
+        active_console->read_palette(129, TRUE);
         textBg = scrpixelIndex;
         while (dirColour == textBg || dirColour == fileColour) {
             dirColour = (dirColour + 1) % scrcolours;

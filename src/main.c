@@ -47,6 +47,7 @@
 #include "i2c.h"
 #include "umm_malloc.h"
 #include "bootmsg.h"
+#include "console.h"
 
 extern volatile BYTE scrcolours, scrpixelIndex;  // In globals.asm
 
@@ -130,9 +131,9 @@ int main(void) {
 
 	scrcolours = 0;
 	scrpixelIndex = 255;
-	getModeInformation();
+	active_console->get_mode_information();
     while (scrcolours == 0) { }
-	readPalette(128, TRUE);
+        active_console->read_palette(128, TRUE);
 
 	if (scrpixelIndex < 128) {
 		vdpSupportsTextPalette = TRUE;
