@@ -103,6 +103,7 @@ int		mos_cmdHOTKEY(char *ptr);
 int		mos_cmdMEM(char *ptr);
 int		mos_cmdECHO(char *ptr);
 int		mos_cmdPRINTF(char *ptr);
+int		mos_cmdSTARTFB(char *ptr);
 
 UINT24	mos_LOAD(char * filename, UINT24 address, UINT24 size);
 UINT24	mos_SAVE(char * filename, UINT24 address, UINT24 size);

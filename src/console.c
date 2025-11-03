@@ -4,11 +4,13 @@
 #include "console.h"
 #include "uart.h"
 #include "timer.h"
+#include "fbconsole.h"
 
 extern volatile BYTE vpd_protocol_flags;		// In globals.asm
 extern BYTE cursorX;
 extern BYTE cursorY;
 extern BYTE scrcols;
+extern BYTE scrrows;
 
 // Get the current cursor position from the VPD
 //
@@ -44,9 +46,13 @@ void vdpReadPalette(BYTE entry, BOOL wait) {
 }
 
 void fbGetCursorPos() {
+	cursorX = fb_curs_x;
+	cursorY = fb_curs_y;
 }
 
 void fbGetModeInformation() {
+	scrcols = fbterm_width;
+	scrrows = fbterm_height;
 }
 
 void fbReadPalette(BYTE entry, BOOL wait) {

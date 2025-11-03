@@ -123,6 +123,7 @@ static t_mosCommand mosCommands[] = {
 	{ "TIME", 		&mos_cmdTIME,		HELP_TIME_ARGS,		HELP_TIME },
 	{ "TYPE",		&mos_cmdTYPE,		HELP_TYPE_ARGS,		HELP_TYPE },
 	{ "VDU",		&mos_cmdVDU,		HELP_VDU_ARGS,		HELP_VDU },
+	{ "STARTFB",		&mos_cmdSTARTFB,	NULL,			NULL },
 #if DEBUG > 0
 	{ "RUN_MOS_TESTS",		&mos_cmdTEST,		NULL,		"Run the MOS OS test suite" },
 #endif /* DEBUG */
@@ -2439,3 +2440,17 @@ int mos_mount(void) {
 	return ret;
 }
 
+extern int start_fbterm(void);
+extern uint8_t fbterm_width, fbterm_height;
+
+int mos_cmdSTARTFB(char *)
+{
+	int ret = start_fbterm();
+	if (ret == 0) {
+		printf("FBTerm %dx%d\r\n", (int)fbterm_width, (int)fbterm_height);
+
+	} else if (ret == 2) {
+		printf("EZ80 GPIO video driver not found\r\n");
+	}
+	return ret;
+}
