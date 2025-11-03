@@ -23,6 +23,7 @@ _fb_curs_x:	.ds 1
 _fb_curs_y:		.ds 1
 vdp_active_fn:	.ds 3
 vdp_fn_args:	.ds 1
+is_cursor_vis:	.ds 1
 
 		.text
 
@@ -89,7 +90,9 @@ rst10_handler:
 		push hl
 		push ix
 		push iy
+		call hide_cursor
 		call term_putch
+		call show_cursor
 		pop iy
 		pop ix
 		pop hl
@@ -123,7 +126,7 @@ term_init:	; size the terminal. needed after mode change
 		ld a,255
 		ld (term_fg),a
 
-		ld hl,_draw_char
+		ld hl,_interpret_char
 		ld (vdp_active_fn),hl
 
 		pop iy
@@ -148,7 +151,7 @@ _vdp_fn_gotoxy_arg1:
 		ld (_fb_curs_y),a
 		ld a,(vdp_fn_args)
 		ld (_fb_curs_x),a
-		ld hl,_draw_char
+		ld hl,_interpret_char
 		ld (vdp_active_fn),hl
 		ret
 
@@ -167,133 +170,136 @@ _vdp_fn_set_color:
 	1:
 		ld (hl),a
 		
-		ld hl,_draw_char
+		ld hl,_interpret_char
 		ld (vdp_active_fn),hl
 		pop de
 		ret
 
-_draw_char:
-		push ix
-		push iy
-		push af
-			; rotate through colours
-			;ld hl,term_fg
-			;dec (hl)
-			;jr nz,@f
-			;dec (hl)
-		;@@:
-			; get modeinfo
-			ld a,3
-			rst.lil 0x20
-		
-			; find character y position
-			ld hl,(iy+6)	; screen.width
-			add hl,hl	; FONT_HEIGHT is 6
-			push hl
-			pop de
-			add hl,hl
-			add hl,de	; hl=screen.width*6
+_vdp_fn_rawchar:
+		call raw_draw_char
+		call move_cursor_right
+		ld hl,_interpret_char
+		ld (vdp_active_fn),hl
+		ret
 
-			; hl=screen.width*8*_fb_curs_y
-			ld de,0
-			ld a,(_fb_curs_y)
-			ld e,a
-			call umul24
+move_cursor_left:
+		ld a,(_fb_curs_x)
+		dec a
+		jr c,.move_up
+		ld (_fb_curs_x),a
+		ret
+	.move_up:
+		ld a,(_fb_curs_y)
+		or a
+		jr z,.at_top
+		dec a
+		ld (_fb_curs_y),a
+		ld a,(term_width)
+		dec a
+		ld (_fb_curs_x),a
+		ret
+	.at_top:
+		xor a
+		ld (_fb_curs_x),a
+		ret
 
-			; seek x character pos in framebuffer
-			ld a,(_fb_curs_x)
-			ld b,a
-			ld c,FONT_WIDTH
-			mlt bc
-			add hl,bc
-
-			; add base framebuffer address
-			ld de,FB_BASE
-			add hl,de
-		pop af
-
-		; handle special characters
-		cp 31
-		jp z,.handle_gotoxy
-		cp 30
-		jp z,.handle_gohome
-		cp 17
-		jp z,.handle_color
-		cp 13
-		jp z,.handle_cr
-		cp 12
-		jp z,.handle_cls
-		cp 10
-		jp z,.handle_lf
-
-		push hl
-			; seek to character in font
-			ld b,a
-			ld c,6
-			mlt bc
-			ld hl,font_4x6
-			add hl,bc
-
-		; framebuffer char position in ix
-		pop ix
-
-		ld b,FONT_HEIGHT
-	.lineloop:
-		ld c,(hl)
-		inc hl
-
-		rlc c
-		ld a,(term_bg)
-		jr nc,1f
-		ld a,(term_fg)
-	1:	ld (ix+0),a
-		rlc c
-		ld a,(term_bg)
-		jr nc,1f
-		ld a,(term_fg)
-	1:	ld (ix+1),a
-		rlc c
-		ld a,(term_bg)
-		jr nc,1f
-		ld a,(term_fg)
-	1:	ld (ix+2),a
-		rlc c
-		ld a,(term_bg)
-		jr nc,1f
-		ld a,(term_fg)
-	1:	ld (ix+3),a
-
-		ld de,(iy+6)
-		add ix,de
-		djnz .lineloop
-
+move_cursor_right:
 		ld a,(term_width)
 		ld e,a
 		ld a,(_fb_curs_x)
 		inc a
 		ld (_fb_curs_x),a
 		cp e
-		jr nz,.end
-
-	
+		ret nz
 		; go to next line
 		xor a
 		ld (_fb_curs_x),a
+		call move_cursor_down
+		ret
 
-	.handle_lf:
+move_cursor_down:
 		ld a,(term_height)
 		ld e,a
 		ld a,(_fb_curs_y)
 		inc a
 		cp e
-		jr z,.handle_scroll
+		jr z,.scroll
 		ld (_fb_curs_y),a
+		ret
+	.scroll:
+		call do_scroll
+		ret
 
+move_cursor_up:
+		ld a,(_fb_curs_y)
+		dec a
+		ret c
+		ld (_fb_curs_y),a
+		ret
 
+_interpret_char:
+		push ix
+		push iy
+
+		; handle special characters
+		cp 127
+		jp z,.handle_backspace
+		cp 31
+		jp z,.handle_gotoxy
+		cp 30
+		jp z,.handle_gohome
+		cp 27
+		jp z,.handle_rawchar
+		cp 17
+		jp z,.handle_color
+		cp 16
+		jp z,.handle_clg
+		cp 13
+		jp z,.handle_cr
+		cp 12
+		jp z,.handle_cls
+		cp 11
+		jp z,.handle_curs_up
+		cp 10
+		jp z,.handle_lf
+		cp 9
+		jp z,.handle_curs_right
+		cp 8
+		jp z,.handle_curs_left
+
+		call raw_draw_char
+		call move_cursor_right
 	.end:
 		pop iy
 		pop ix
 		ret
+
+	.handle_rawchar:
+		ld hl,_vdp_fn_rawchar
+		ld (vdp_active_fn),hl
+		jr .end
+
+	.handle_curs_up:
+		call move_cursor_up
+		jp .end
+
+	.handle_curs_right:
+		call move_cursor_right
+		jp .end
+
+	.handle_curs_left:
+		call move_cursor_left
+		jp .end
+
+	.handle_backspace:
+		call move_cursor_left
+		ld a,' '
+		call raw_draw_char
+		jp .end
+
+	.handle_lf:
+		call move_cursor_down
+		jp .end
 
 	.handle_gohome:
 		xor a
@@ -320,37 +326,12 @@ _draw_char:
 		call fb_cls
 		jp .handle_gohome
 
+	.handle_clg:
+		call fb_cls
+		jp .end
+
 	.handle_scroll:
-		; bc = screen.width * (screen.height-6)
-		ld hl,(iy+6)	; screen.width
-		ld de,(iy+9)	; screen.height
-		dec de
-		dec de
-		dec de
-		dec de
-		dec de
-		dec de
-		call umul24
-		push hl
-		pop bc
-
-		ld hl,(iy+6)	; screen.width
-		add hl,hl	; FONT_HEIGHT is 6
-		push hl
-		pop de
-		add hl,hl
-		add hl,de	; hl=screen.width*6
-		ld de,FB_BASE
-		add hl,de
-
-		ldir
-		
-		ld de,0
-		ld a,(term_height)
-		dec a
-		ld e,a
-		call .clear_line
-
+		call do_scroll
 		jp .end
 
 	.clear_line:	; terminal line in de
@@ -385,11 +366,93 @@ _draw_char:
 		ldir
 		ret
 
+do_scroll:
+		call fb_get_modeinfo
+		; bc = screen.width * (screen.height-6)
+		ld hl,(iy+6)	; screen.width
+		ld de,(iy+9)	; screen.height
+		dec de
+		dec de
+		dec de
+		dec de
+		dec de
+		dec de
+		call umul24
+		push hl
+		pop bc
+
+		ld hl,(iy+6)	; screen.width
+		add hl,hl	; FONT_HEIGHT is 6
+		push hl
+		pop de
+		add hl,hl
+		add hl,de	; hl=screen.width*6
+		ld de,FB_BASE
+		add hl,de
+
+		ldir
+		
+		ld de,0
+		ld a,(term_height)
+		dec a
+		ld e,a
+		call .clear_line
+
+; Input:
+;   a: character to draw
+; Note:
+;   This function performs no alteration of cursor position, text
+;   color, or any other higher level terminal stuff. It just draws
+;   the character.
+raw_draw_char:
+		push af
+		; ptr to hl, modeinfo to iy
+		call get_hl_ptr_cursor_pos
+		push hl
+		pop ix
+		pop af
+		; seek to character in font
+		ld b,a
+		ld c,6
+		mlt bc
+		ld hl,font_4x6
+		add hl,bc
+		; draw it
+		ld b,FONT_HEIGHT
+	.lineloop:
+		ld c,(hl)
+		inc hl
+
+		rlc c
+		ld a,(term_bg)
+		jr nc,1f
+		ld a,(term_fg)
+	1:	ld (ix+0),a
+		rlc c
+		ld a,(term_bg)
+		jr nc,1f
+		ld a,(term_fg)
+	1:	ld (ix+1),a
+		rlc c
+		ld a,(term_bg)
+		jr nc,1f
+		ld a,(term_fg)
+	1:	ld (ix+2),a
+		rlc c
+		ld a,(term_bg)
+		jr nc,1f
+		ld a,(term_fg)
+	1:	ld (ix+3),a
+
+		ld de,(iy+6)
+		add ix,de
+		djnz .lineloop
+
+		ret
+
 fb_cls:
 		push iy
-		; get modeinfo (iy)
-		ld a,3
-		rst.lil 0x20
+		call fb_get_modeinfo	; iy
 
 		; total screen bytes (minus 1) in bc
 		ld hl,(iy+6)
@@ -407,6 +470,96 @@ fb_cls:
 		ld (hl),a
 		ldir
 		pop iy
+		ret
+
+show_cursor:
+		push af
+		ld a,(is_cursor_vis)
+		or a
+		jr nz,1f
+	
+		call toggle_cursor
+	1:
+		pop af
+		ret
+
+hide_cursor:
+		push af
+		ld a,(is_cursor_vis)
+		or a
+		jr z,1f
+	
+		call toggle_cursor
+	1:
+		pop af
+		ret
+
+toggle_cursor:
+		push iy
+		; get modeinfo (iy)
+		call fb_get_modeinfo
+
+		ld a,(is_cursor_vis)
+		xor 1
+		ld (is_cursor_vis),a
+
+		call get_hl_ptr_cursor_pos
+
+		ld b,FONT_HEIGHT
+	.yloop:
+		push bc
+		ld b,FONT_WIDTH
+		push hl
+	.xloop:
+		ld a,(hl)
+		xor 0xff
+		ld (hl),a
+		inc hl
+		djnz .xloop
+		pop hl
+		pop bc
+		ld de,(iy+6)	; screen.width
+		add hl,de
+		djnz .yloop
+	
+		pop iy
+		ret
+
+fb_get_modeinfo:	; to iy
+		push af
+		ld a,3
+		rst.lil 0x20
+		pop af
+		ret
+
+get_hl_ptr_cursor_pos:
+		call fb_get_modeinfo	; iy
+	
+		; find character y position
+		ld hl,(iy+6)	; screen.width
+		add hl,hl	; FONT_HEIGHT is 6
+		push hl
+		pop de
+		add hl,hl
+		add hl,de	; hl=screen.width*6
+
+		; hl=screen.width*8*_fb_curs_y
+		ld de,0
+		ld a,(_fb_curs_y)
+		ld e,a
+		call umul24
+
+		; seek x character pos in framebuffer
+		ld a,(_fb_curs_x)
+		ld b,a
+		ld c,FONT_WIDTH
+		mlt bc
+		add hl,bc
+
+		; add base framebuffer address
+		ld de,FB_BASE
+		add hl,de
+
 		ret
 
 font_4x6:

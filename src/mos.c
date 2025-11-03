@@ -2447,7 +2447,7 @@ int mos_cmdSTARTFB(char *)
 {
 	int ret = start_fbterm();
 	if (ret == 0) {
-		printf("FBTerm %dx%d\r\n", (int)fbterm_width, (int)fbterm_height);
+		printf("FBConsole %dx%d\r\n", (int)fbterm_width, (int)fbterm_height);
 
 	} else if (ret == 2) {
 		printf("EZ80 GPIO video driver not found\r\n");

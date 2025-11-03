@@ -78,6 +78,6 @@ void console_enable_fb(void *fb_base, int width, int height)
 		active_console = &vdp_console;
 	} else {
 		active_console = &fb_console;
-		printf("FB console: %d x %d pixels at 0x%x\r\n", width, height, (unsigned int)fb_base);
+		printf("EZ80 GPIO Framebuffer: %d x %d, 8-bit chunky at %p\r\n", width, height, fb_base);
 	}
 }
