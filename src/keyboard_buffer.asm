@@ -55,11 +55,12 @@ kbuf_append:	; 4-byte value to append in (de). set `z` if no space
 		ld bc,4
 		ldir
 
-		; c := (kbbuf_end_idx+1) & KBBUF_LEN
 		ld a,(kbbuf_end_idx)
 		inc a
-		ld c,KBBUF_LEN
-		and c
+		cp KBBUF_LEN
+		jr nz,1f
+		xor a
+	1:
 		ld c,a
 
 		ld a,(kbbuf_start_idx)
@@ -91,10 +92,13 @@ kbuf_remove:	; remove 4-byte value into (de)..(de+3). `z` flag set if no bytes i
 
 		ld a,(kbbuf_start_idx)
 		inc a
-		and KBBUF_LEN
+		cp KBBUF_LEN
+		jr nz,1f
+		xor a
+	1:
 		ld (kbbuf_start_idx),a
 
-		or a		; clear `z` flag
+		or 1		; clear `z` flag
 		ret
 
 ; Clear (flush) the keyboard buffer
@@ -112,7 +116,7 @@ _kbuf_clear:
 		ret
 
 		.bss
-KBBUF_LEN: 	.equ 31		; must be POT-1, and <256
+KBBUF_LEN: 	.equ 32		; must be <256
 kbbuf_start_idx:	db 0
 kbbuf_end_idx: 		db 0
-kbbuf_data:		ds (KBBUF_LEN+1)*4
+kbbuf_data:		ds KBBUF_LEN*4
