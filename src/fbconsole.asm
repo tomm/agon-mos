@@ -4,9 +4,9 @@
 		.global _fbterm_height
 		.global _fb_curs_x
 		.global _fb_curs_y
+		.global _fb_lookupmode
+		.global _fb_driverversion
 
-FB_BASE: 	.equ	0xb1000		; only 4K left for moslets :)
-FB_SCANLINE_OFFSETS: .equ 0xba240
 FONT_WIDTH: .equ 4
 FONT_HEIGHT: .equ 6
 
@@ -23,6 +23,7 @@ _fb_curs_y:		.ds 1
 vdp_active_fn:	.ds 3
 vdp_fn_args:	.ds 1
 is_cursor_vis:	.ds 1
+fb_base: 	.ds 3
 
 		.text
 
@@ -33,8 +34,7 @@ _start_fbterm:
 		add ix,sp
 
 		; is the driver present?
-		xor a
-		rst.lil 0x20
+		call _fb_driverversion
 		or a
 		jp z,.no_driver
 
@@ -43,9 +43,10 @@ _start_fbterm:
 		rst.lil 0x20
 
 		; move framebuffer to desired location
-		ld hl,FB_BASE
+		ld hl,(ix+9)	; fb_base
+		ld (fb_base),hl
 		ld (iy+1),hl
-		ld hl,FB_SCANLINE_OFFSETS
+		ld hl,(ix+12)	; fb_scanline_offsets
 		ld (iy+4),hl
 
 		; set mode
@@ -345,7 +346,7 @@ _interpret_char:
 		add hl,de	; hl=screen.width*6
 		pop de
 		call umul24	; hl=screen.width*8*line_no
-		ld de,FB_BASE
+		ld de,(fb_base)
 		add hl,de
 		xor a
 		ld (hl),a
@@ -377,7 +378,7 @@ do_scroll:
 		pop de
 		add hl,hl
 		add hl,de	; hl=screen.width*6
-		ld de,FB_BASE
+		ld de,(fb_base)
 		add hl,de
 
 		ldir
@@ -452,7 +453,7 @@ fb_cls:
 		push hl
 		pop bc
 
-        	ld hl,FB_BASE
+        	ld hl,(fb_base)
 		push hl
 		pop de
 		inc de
@@ -547,9 +548,24 @@ get_hl_ptr_cursor_pos:
 		add hl,bc
 
 		; add base framebuffer address
-		ld de,FB_BASE
+		ld de,(fb_base)
 		add hl,de
 
+		ret
+
+_fb_driverversion:
+		xor a
+		rst.lil 0x20
+		ret
+
+_fb_lookupmode:
+		push ix
+		ld ix,0
+		add ix,sp
+		ld hl,(ix+6)	; mode number
+		ld a,6		; api_lookupmode
+		rst.lil 0x20
+		pop ix
 		ret
 
 font_4x6:

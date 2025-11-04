@@ -2444,9 +2444,26 @@ int mos_mount(void) {
 int mos_cmdFBMODE(char *)
 {
 	char *value_str;
+	if (fb_driverversion() == 0) {
+		printf("EZ80 GPIO video driver not found\r\n");
+		return 0;
+	}
 	// Get mode as argument
 	if (!mos_parseString(NULL, &value_str)) {
-		printf("Type 'help fbmode' for usage\r\n");
+		printf("Available modes:\r\n");
+
+		for (int mode=0; ; mode++) {
+			struct fbmodeinfo_t *minfo = fb_lookupmode(mode);
+			if (minfo == NULL) break;
+			printf("Mode %d: %dx%d", mode, minfo->width, minfo->height);
+			if (minfo->flags & FBMODE_FLAG_SLOW) printf(" SLOW");
+			if (minfo->flags & FBMODE_FLAG_15KHZ) printf(" 15KHz");
+			if (minfo->flags & FBMODE_FLAG_31KHZ) printf(" 31KHz");
+			if (minfo->flags & FBMODE_FLAG_30HZ) printf(" 30Hz");
+			if (minfo->flags & FBMODE_FLAG_60HZ) printf(" 60Hz");
+			printf("\r\n");
+		}
+
 		return 0;
 	}
 
@@ -2454,15 +2471,32 @@ int mos_cmdFBMODE(char *)
 	return mos_FBMODE(mode);
 }
 
+static void *fb_scanline_offsets = NULL;
+
 uint24_t mos_FBMODE(int mode)
 {
-	int ret = start_fbterm(mode);
+	if (fb_driverversion() == 0) {
+		printf("EZ80 GPIO video driver not found\r\n");
+		return 0;
+	}
+	struct fbmodeinfo_t *minfo = fb_lookupmode(mode);
+
+	if (minfo == 0) {
+		printf("Invalid mode\r\n");
+		return 0;
+	}
+
+	void *fb_base = (void*)(MOS_systemAddress - minfo->width*minfo->height);
+
+	if (fb_scanline_offsets) {
+		umm_free(fb_scanline_offsets);
+	}
+	fb_scanline_offsets = umm_malloc(sizeof(void*) * minfo->height * minfo->scan_multiplier);
+
+	int ret = start_fbterm(mode, fb_base, fb_scanline_offsets);
 	if (ret == 0) {
 		console_enable_fb();
-		printf("FBConsole Mode %d, %dx%d\r\n", mode, (int)fbterm_width, (int)fbterm_height);
-
-	} else if (ret == 2) {
-		printf("EZ80 GPIO video driver not found\r\n");
+		printf("FBConsole Mode %d: %dx%d @ %p\r\n", mode, (int)fbterm_width, (int)fbterm_height, fb_base);
 	}
 	return ret;
 }
