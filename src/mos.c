@@ -56,6 +56,7 @@
 #include "umm_malloc.h"
 #include "bootmsg.h"
 #include "console.h"
+#include "fbconsole.h"
 #if DEBUG > 0
 # include "tests.h"
 #endif /* DEBUG */
@@ -104,6 +105,7 @@ static t_mosCommand mosCommands[] = {
 	{ "ECHO",		&mos_cmdECHO,		HELP_ECHO_ARGS,		HELP_ECHO },
 	{ "ERASE",		&mos_cmdDEL,		HELP_DELETE_ARGS,	HELP_DELETE },
 	{ "EXEC",		&mos_cmdEXEC,		HELP_EXEC_ARGS,		HELP_EXEC },
+	{ "FBMODE",		&mos_cmdFBMODE,		HELP_FBMODE_ARGS,       HELP_FBMODE },
 	{ "HELP",		&mos_cmdHELP,		HELP_HELP_ARGS,		HELP_HELP },
 	{ "JMP",		&mos_cmdJMP,		HELP_JMP_ARGS,		HELP_JMP },
 	{ "LOAD",		&mos_cmdLOAD,		HELP_LOAD_ARGS,		HELP_LOAD },
@@ -123,7 +125,6 @@ static t_mosCommand mosCommands[] = {
 	{ "TIME", 		&mos_cmdTIME,		HELP_TIME_ARGS,		HELP_TIME },
 	{ "TYPE",		&mos_cmdTYPE,		HELP_TYPE_ARGS,		HELP_TYPE },
 	{ "VDU",		&mos_cmdVDU,		HELP_VDU_ARGS,		HELP_VDU },
-	{ "STARTFB",		&mos_cmdSTARTFB,	NULL,			NULL },
 #if DEBUG > 0
 	{ "RUN_MOS_TESTS",		&mos_cmdTEST,		NULL,		"Run the MOS OS test suite" },
 #endif /* DEBUG */
@@ -2440,14 +2441,25 @@ int mos_mount(void) {
 	return ret;
 }
 
-extern int start_fbterm(void);
-extern uint8_t fbterm_width, fbterm_height;
-
-int mos_cmdSTARTFB(char *)
+int mos_cmdFBMODE(char *)
 {
-	int ret = start_fbterm();
+	char *value_str;
+	// Get mode as argument
+	if (!mos_parseString(NULL, &value_str)) {
+		printf("Type 'help fbmode' for usage\r\n");
+		return 0;
+	}
+
+        int mode = strtol(value_str, NULL, 10);
+	return mos_FBMODE(mode);
+}
+
+uint24_t mos_FBMODE(int mode)
+{
+	int ret = start_fbterm(mode);
 	if (ret == 0) {
-		printf("FBConsole %dx%d\r\n", (int)fbterm_width, (int)fbterm_height);
+		console_enable_fb();
+		printf("FBConsole Mode %d, %dx%d\r\n", mode, (int)fbterm_width, (int)fbterm_height);
 
 	} else if (ret == 2) {
 		printf("EZ80 GPIO video driver not found\r\n");

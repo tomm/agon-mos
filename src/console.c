@@ -72,12 +72,7 @@ struct console_driver_t fb_console = {
 
 struct console_driver_t *active_console = &vdp_console;
 
-void console_enable_fb(void *fb_base, int width, int height)
+void console_enable_fb()
 {
-	if (fb_base == 0) {
-		active_console = &vdp_console;
-	} else {
-		active_console = &fb_console;
-		printf("EZ80 GPIO Framebuffer: %d x %d, 8-bit chunky at %p\r\n", width, height, fb_base);
-	}
+	active_console = &fb_console;
 }

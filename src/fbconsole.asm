@@ -5,7 +5,6 @@
 		.global _fb_curs_x
 		.global _fb_curs_y
 
-MODE:		.equ	2
 FB_BASE: 	.equ	0xb1000		; only 4K left for moslets :)
 FB_SCANLINE_OFFSETS: .equ 0xba240
 FONT_WIDTH: .equ 4
@@ -30,6 +29,9 @@ is_cursor_vis:	.ds 1
 ; returns zero on success, non-zero on error
 _start_fbterm:
 		push ix
+		ld ix,0
+		add ix,sp
+
 		; is the driver present?
 		xor a
 		rst.lil 0x20
@@ -48,7 +50,7 @@ _start_fbterm:
 
 		; set mode
 		ld a,1
-		ld l,MODE
+		ld l,(ix+6)
 		rst.lil 0x20
 
 		; clear screen
@@ -60,18 +62,6 @@ _start_fbterm:
 		ld a,0x61
 		ld e,0x10
 		ld hl,rst10_handler
-		rst.lil 8
-
-		; get modeinfo
-		ld a,3
-		rst.lil 0x20
-
-		; enable fb console (needs agondev mos)
-		ld a,0x63 ; mos_api_startfbconsole
-		ld hl,FB_BASE
-		ld ix,MODE
-		ld de,(iy+6)	; screen.width
-		ld bc,(iy+9)	; screen.height
 		rst.lil 8
 
 		pop ix

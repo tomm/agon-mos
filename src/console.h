@@ -9,7 +9,7 @@ struct console_driver_t {
 	void (*read_palette)(uint8_t entry, bool wait);
 };
 
-extern void console_enable_fb(void *fb_base, int width, int height);
+extern void console_enable_fb();
 
 extern struct console_driver_t vdp_console;
 extern struct console_driver_t fb_console;

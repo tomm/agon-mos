@@ -103,7 +103,7 @@ int		mos_cmdHOTKEY(char *ptr);
 int		mos_cmdMEM(char *ptr);
 int		mos_cmdECHO(char *ptr);
 int		mos_cmdPRINTF(char *ptr);
-int		mos_cmdSTARTFB(char *ptr);
+int		mos_cmdFBMODE(char *ptr);
 
 UINT24	mos_LOAD(char * filename, UINT24 address, UINT24 size);
 UINT24	mos_SAVE(char * filename, UINT24 address, UINT24 size);
@@ -118,6 +118,7 @@ UINT24	mos_COPY_API(char *srcPath, char *dstPath);
 UINT24	mos_COPY(char *srcPath, char *dstPath, BOOL verbose);
 UINT24	mos_MKDIR(char * filename);
 UINT24 	mos_EXEC(char * filename, char * buffer, UINT24 size);
+UINT24  mos_FBMODE(int mode);
 
 UINT24	mos_FOPEN(char * filename, UINT8 mode);
 UINT24	mos_FCLOSE(UINT8 fh);
@@ -225,6 +226,9 @@ UINT8	fat_EOF(FIL * fp);
 
 #define HELP_TYPE			"Display the contents of a file on the screen\r\n"
 #define HELP_TYPE_ARGS		"<filename>"
+
+#define HELP_FBMODE			"Set EZ80 GPIO Video mode"
+#define HELP_FBMODE_ARGS			"<mode_number>"
 
 #define HELP_HOTKEY			"Store a command in one of 12 hotkey slots assigned to F1-F12\r\n\r\n" \
 							"Optionally, the command string can include \"%s\" as a marker\r\n" \
