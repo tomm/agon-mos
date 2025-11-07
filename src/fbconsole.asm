@@ -24,8 +24,28 @@ vdp_active_fn:	.ds 3
 vdp_fn_args:	.ds 1
 is_cursor_vis:	.ds 1
 fb_base: 	.ds 3
+cursor_mutex:	.db 1	; 1 when free, 0 when held
 
 		.text
+
+pre_image_callback:
+		; If cursor was temporarily hidden this frame (ie when drawing text)
+		; show it again before screen is exposed.
+		; Try to take cursor mutex
+		ld hl,cursor_mutex
+		srl (hl)
+		ret nc		; nope. someone else holds it
+
+		ld a,(is_cursor_vis)
+		or a
+		jr nz,1f
+		ret nz
+		call show_cursor
+	1:
+		; release cursor_mutex
+		ld hl,cursor_mutex
+		inc (hl)
+		ret
 
 ; returns zero on success, non-zero on error
 _start_fbterm:
@@ -48,11 +68,17 @@ _start_fbterm:
 		ld (iy+1),hl
 		ld hl,(ix+12)	; fb_scanline_offsets
 		ld (iy+4),hl
+		ld hl,pre_image_callback
+		ld (iy+7),hl
 
 		; set mode
 		ld a,1
 		ld l,(ix+6)
 		rst.lil 0x20
+
+		; Init cursor mutex
+		ld hl,cursor_mutex
+		ld (hl),1
 
 		; clear screen
 		call fb_cls
@@ -81,9 +107,20 @@ rst10_handler:
 		push hl
 		push ix
 		push iy
+
+		; Try to take cursor mutex
+		ld hl,cursor_mutex
+	1:	srl (hl)
+		jr nc,1b		; nope. someone else holds it
+
 		call hide_cursor
+
 		call term_putch
-		call show_cursor
+
+		; Release cursor mutex
+		ld hl,cursor_mutex
+		inc (hl)
+
 		pop iy
 		pop ix
 		pop hl
@@ -410,33 +447,39 @@ raw_draw_char:
 		add hl,bc
 		; draw it
 		ld b,FONT_HEIGHT
+		ld a,(term_fg)
+		ld d,a
+		ld a,(term_bg)
+		ld e,a
 	.lineloop:
 		ld c,(hl)
 		inc hl
 
 		rlc c
-		ld a,(term_bg)
+		ld a,e
 		jr nc,1f
-		ld a,(term_fg)
+		ld a,d
 	1:	ld (ix+0),a
 		rlc c
-		ld a,(term_bg)
+		ld a,e
 		jr nc,1f
-		ld a,(term_fg)
+		ld a,d
 	1:	ld (ix+1),a
 		rlc c
-		ld a,(term_bg)
+		ld a,e
 		jr nc,1f
-		ld a,(term_fg)
+		ld a,d
 	1:	ld (ix+2),a
 		rlc c
-		ld a,(term_bg)
+		ld a,e
 		jr nc,1f
-		ld a,(term_fg)
+		ld a,d
 	1:	ld (ix+3),a
 
+		push de
 		ld de,(iy+6)
 		add ix,de
+		pop de
 		djnz .lineloop
 
 		ret
