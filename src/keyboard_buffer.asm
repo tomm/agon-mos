@@ -5,6 +5,7 @@
 		.global _kbuf_clear
 		.global kbuf_append
 		.global kbuf_remove
+		.global kbuf_isempty
 
 _kbuf_wait_keydown:
 		push ix
@@ -76,11 +77,7 @@ kbuf_append:	; 4-byte value to append in (de). set `z` if no space
 
 ; Take 1 event from the keyboard buffer (store to (de) struct keyboard_event_t*)
 kbuf_remove:	; remove 4-byte value into (de)..(de+3). `z` flag set if no bytes in fifo
-		ld hl,0
-		ld a,(kbbuf_start_idx)
-		ld l,a
-		ld a,(kbbuf_end_idx)
-		cp l
+		call kbuf_isempty
 		ret z
 
 		add hl,hl
@@ -99,6 +96,14 @@ kbuf_remove:	; remove 4-byte value into (de)..(de+3). `z` flag set if no bytes i
 		ld (kbbuf_start_idx),a
 
 		or 1		; clear `z` flag
+		ret
+
+kbuf_isempty:	; 'z' flag set if key buffer is empty
+		ld hl,0
+		ld a,(kbbuf_start_idx)
+		ld l,a
+		ld a,(kbbuf_end_idx)
+		cp l
 		ret
 
 ; Clear (flush) the keyboard buffer

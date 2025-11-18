@@ -91,6 +91,8 @@ _start_fbterm:
 		ld hl,rst10_handler
 		rst.lil 8
 
+		call do_fbsplash
+
 		pop ix
 		ld hl,0
 		ret
@@ -185,8 +187,13 @@ _vdp_fn_gotoxy_arg1:
 
 _vdp_fn_set_color:
 		push de
-		ld hl,term_fg
 
+		ld hl,term_fg
+		bit 7,a
+		jr z,2f
+		ld hl,term_bg
+		res 7,a
+	2:
 		cp 16
 		jr nc,1f
 
@@ -352,6 +359,10 @@ _interpret_char:
 
 	.handle_cls:
 		call fb_cls
+		xor a
+		ld (term_bg),a
+		dec a
+		ld (term_fg),a
 		jp .handle_gohome
 
 	.handle_clg:
@@ -613,3 +624,80 @@ _fb_lookupmode:
 
 font_4x6:
 		.include "font_4x6.inc"
+
+do_fbsplash:
+		push ix
+		ld ix,0
+		add ix,sp
+
+		; 'random' logo color in (ix-2)
+		ld a,r
+		sll a
+		push af
+
+		; splash text
+		ld a, 5
+		ld (_fb_curs_x),a
+		ld hl,splashmsg_1
+		ld bc,0
+		xor a
+		rst.lil 0x18
+
+		ld a, 5
+		ld (_fb_curs_x),a
+		ld a, 2
+		ld (_fb_curs_y),a
+		ld hl,splashmsg_2
+		ld bc,0
+		xor a
+		rst.lil 0x18
+		; move cursor out of way of logo
+		ld a,5
+		ld (_fb_curs_y),a
+
+	.draw_logo:
+		call fb_get_modeinfo	; iy
+		; splash logo
+		ld de,(fb_base)
+		ld hl,logo
+		ld b,LOGO_H
+	1:	push bc
+		ld b,LOGO_W
+		push de
+		inc (ix-2)
+		ld a,r
+		ld c,a
+		sll c
+	2:
+		ld a,(hl)
+		and c
+		inc hl
+		ld (de),a
+		inc de
+		dec b
+		jr nz,2b
+
+		pop de
+		pop bc
+		; next line (de += screen.width)
+		push hl
+		ld hl,(iy+6)  ; screen.width
+		add hl,de
+		ex de,hl
+		pop hl
+		djnz 1b
+
+		call kbuf_isempty
+		jp z,.draw_logo
+
+		pop af
+		pop ix
+		ret
+
+splashmsg_1:	.asciz "Agon Computer 512K"
+splashmsg_2:	.asciz "EZ80 GPIO Video\r\n"
+
+LOGO_W .equ 16
+LOGO_H .equ 24
+logo:
+		.incbin "logo_16x24.raw"

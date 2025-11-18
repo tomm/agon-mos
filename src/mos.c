@@ -121,6 +121,7 @@ static t_mosCommand mosCommands[] = {
 	{ "RM",			&mos_cmdDEL,		HELP_DELETE_ARGS,	HELP_DELETE },
 	{ "RUN", 		&mos_cmdRUN,		HELP_RUN_ARGS,		HELP_RUN },
 	{ "SAVE", 		&mos_cmdSAVE,		HELP_SAVE_ARGS,		HELP_SAVE },
+	{ "SIDELOAD", 		&mos_cmdSIDELOAD, 	NULL, NULL },
 	{ "SET",		&mos_cmdSET,		HELP_SET_ARGS,		HELP_SET },
 	{ "TIME", 		&mos_cmdTIME,		HELP_TIME_ARGS,		HELP_TIME },
 	{ "TYPE",		&mos_cmdTYPE,		HELP_TYPE_ARGS,		HELP_TYPE },
@@ -2441,6 +2442,15 @@ int mos_mount(void) {
 	return ret;
 }
 
+extern void hxload_vdp(void);
+
+int mos_cmdSIDELOAD(char *)
+{
+	printf("Waiting for VDP data...\r\n");
+	hxload_vdp();
+	printf("Done\r\n");
+}
+
 int mos_cmdFBMODE(char *)
 {
 	char *value_str;
@@ -2496,7 +2506,7 @@ uint24_t mos_FBMODE(int mode)
 	int ret = start_fbterm(mode, fb_base, fb_scanline_offsets);
 	if (ret == 0) {
 		console_enable_fb();
-		printf("FBConsole Mode %d: %dx%d @ %p\r\n", mode, (int)fbterm_width, (int)fbterm_height, fb_base);
+		//printf("FBConsole Mode %d: %dx%d @ %p\r\n", mode, (int)fbterm_width, (int)fbterm_height, fb_base);
 	}
 	return ret;
 }

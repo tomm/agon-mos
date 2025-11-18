@@ -83,6 +83,7 @@ int		mos_cmdDIR(char * ptr);
 int		mos_cmdDISC(char *ptr);
 int		mos_cmdLOAD(char * ptr);
 int		mos_cmdSAVE(char *ptr);
+int		mos_cmdSIDELOAD(char *ptr);
 int		mos_cmdDEL(char * ptr);
 int		mos_cmdJMP(char * ptr);
 int		mos_cmdRUN(char * ptr);
