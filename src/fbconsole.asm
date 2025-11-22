@@ -190,19 +190,15 @@ _vdp_fn_set_color:
 
 		ld hl,term_fg
 		bit 7,a
-		jr z,2f
+		jr z,1f
 		ld hl,term_bg
 		res 7,a
-	2:
-		cp 16
-		jr nc,1f
-
-		; For colors <= 15, use the VDP palette (otherwise treat as rgb332)
+	1:
+		and 15 	; clamp to 16-color agon palette
 		ld de,vdp_palette
 		add a,e
 		ld e,a
 		ld a,(de)
-	1:
 		ld (hl),a
 		
 		ld hl,_interpret_char
@@ -632,7 +628,7 @@ do_fbsplash:
 
 		; 'random' logo color in (ix-2)
 		ld a,r
-		sll a
+		sla a
 		push af
 
 		; splash text
@@ -667,7 +663,7 @@ do_fbsplash:
 		inc (ix-2)
 		ld a,r
 		ld c,a
-		sll c
+		sla c
 	2:
 		ld a,(hl)
 		and c
