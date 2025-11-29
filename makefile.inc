@@ -15,7 +15,7 @@ TARGET=ez80-none-elf
 # Tools and flags
 ## Compiler
 CC=$(TOOLBINDIR)/ez80-none-elf-clang
-CFLAGS=-target $(TARGET) -Oz -Wa,-march=$(ARCH) -Wextra -Wno-unused-parameter -DVERSION_GITREF=\"$(VERSION_GITREF)\" -I src_fatfs -I src_umm_malloc -I src -I $(INCLUDEDIR)
+CFLAGS=-target $(TARGET) -Oz -Wa,-march=$(ARCH) -Wextra -Wno-unused-parameter -DVERSION_GITREF=\"$(VERSION_GITREF)\" -I src_fatfs -I src_umm_malloc -I src -I $(INCLUDEDIR) -fcolor-diagnostics
 ## Assembler
 ASM=$(TOOLBINDIR)/ez80-none-elf-as
 ASMFLAGS=-march=$(ARCH) -I src
@@ -30,7 +30,7 @@ else
     LINKER_EXIT=-defsym=_has_exit_handler=0
 endif
 LINKERFLAGS=$(LINKER_ARG) $(LINKER_EXIT) -Map=$(BINDIR)/$(NAME).map -T $(LINKERCONFIG) --oformat binary -o 
-LINKERLIBFLAGS=-L$(LIBDIR) -lc -lcrt -lfp
+LINKERLIBFLAGS=-L$(LIBDIR) -lagon
 SETPROGNAME=$(TOOLBINDIR)/agondev-setname
 
 # project directories
