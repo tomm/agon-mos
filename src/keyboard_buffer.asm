@@ -108,16 +108,8 @@ kbuf_isempty:	; 'z' flag set if key buffer is empty
 
 ; Clear (flush) the keyboard buffer
 _kbuf_clear:
-		push hl
-		ld hl,kbbuf_start_idx
-		xor a
-		; Clear buffer with interrupts disabled to make it atomic
-		di
-		ld (hl),a
-		inc hl
-		ld (hl),a
-		ei
-		pop hl
+		ld a,(kbbuf_end_idx)
+		ld (kbbuf_start_idx),a
 		ret
 
 		.bss
