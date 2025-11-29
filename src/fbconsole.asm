@@ -6,6 +6,7 @@
 		.global _fb_curs_y
 		.global _fb_lookupmode
 		.global _fb_driverversion
+		.global _fb_base
 
 FONT_WIDTH: .equ 4
 FONT_HEIGHT: .equ 6
@@ -22,9 +23,14 @@ _fb_curs_x:	.ds 1
 _fb_curs_y:		.ds 1
 vdp_active_fn:	.ds 3
 vdp_fn_args:	.ds 1
-is_cursor_vis:	.ds 1
-fb_base: 	.ds 3
+fbterm_flags:	.ds 1
+_fb_base: 	.ds 3
 cursor_mutex:	.db 1	; 1 when free, 0 when held
+
+FLAG_IS_CURSOR_VIS: .equ 1
+FLAG_DELAYED_SCROLL: .equ 2
+
+is_cursor_vis:	.ds 1
 
 		.text
 
@@ -36,7 +42,8 @@ pre_image_callback:
 		srl (hl)
 		ret nc		; nope. someone else holds it
 
-		ld a,(is_cursor_vis)
+		ld a,(fbterm_flags)
+		and FLAG_IS_CURSOR_VIS
 		or a
 		jr nz,1f
 		ret nz
@@ -63,8 +70,8 @@ _start_fbterm:
 		rst.lil 0x20
 
 		; move framebuffer to desired location
-		ld hl,(ix+9)	; fb_base
-		ld (fb_base),hl
+		ld hl,(ix+9)	; _fb_base
+		ld (_fb_base),hl
 		ld (iy+1),hl
 		ld hl,(ix+12)	; fb_scanline_offsets
 		ld (iy+4),hl
@@ -207,6 +214,9 @@ _vdp_fn_set_color:
 		ret
 
 _vdp_fn_rawchar:
+		push af
+		call do_scroll_if_needed
+		pop af
 		call raw_draw_char
 		call move_cursor_right
 		ld hl,_interpret_char
@@ -258,7 +268,10 @@ move_cursor_down:
 		ld (_fb_curs_y),a
 		ret
 	.scroll:
-		call do_scroll
+		ld a,(fbterm_flags)
+		or FLAG_DELAYED_SCROLL
+		ld (fbterm_flags),a
+		;call do_scroll
 		ret
 
 move_cursor_up:
@@ -298,6 +311,10 @@ _interpret_char:
 		cp 8
 		jp z,.handle_curs_left
 
+		; No control sequence. Just draw char
+		push af
+		call do_scroll_if_needed
+		pop af
 		call raw_draw_char
 		call move_cursor_right
 	.end:
@@ -311,18 +328,24 @@ _interpret_char:
 		jr .end
 
 	.handle_curs_up:
+		call clear_delayed_scroll
 		call move_cursor_up
 		jp .end
 
 	.handle_curs_right:
+		push af
+		call do_scroll_if_needed
+		pop af
 		call move_cursor_right
 		jp .end
 
 	.handle_curs_left:
+		call clear_delayed_scroll
 		call move_cursor_left
 		jp .end
 
 	.handle_backspace:
+		call clear_delayed_scroll
 		call move_cursor_left
 		ld a,' '
 		call raw_draw_char
@@ -330,15 +353,20 @@ _interpret_char:
 
 	.handle_lf:
 		call move_cursor_down
+		push af
+		call do_scroll_if_needed
+		pop af
 		jp .end
 
 	.handle_gohome:
+		call clear_delayed_scroll
 		xor a
 		ld (_fb_curs_x),a
 		ld (_fb_curs_y),a
 		jr .end
 
 	.handle_gotoxy:
+		call clear_delayed_scroll
 		ld hl,_vdp_fn_gotoxy_arg0
 		ld (vdp_active_fn),hl
 		jr .end
@@ -349,11 +377,13 @@ _interpret_char:
 		jr .end
 
 	.handle_cr:
+		call clear_delayed_scroll
 		xor a
 		ld (_fb_curs_x),a
-		jr .end
+		jp .end
 
 	.handle_cls:
+		call clear_delayed_scroll
 		call fb_cls
 		xor a
 		ld (term_bg),a
@@ -362,11 +392,8 @@ _interpret_char:
 		jp .handle_gohome
 
 	.handle_clg:
+		call clear_delayed_scroll
 		call fb_cls
-		jp .end
-
-	.handle_scroll:
-		call do_scroll
 		jp .end
 
 	.clear_line:	; terminal line in de
@@ -390,7 +417,7 @@ _interpret_char:
 		add hl,de	; hl=screen.width*6
 		pop de
 		call umul24	; hl=screen.width*8*line_no
-		ld de,(fb_base)
+		ld de,(_fb_base)
 		add hl,de
 		xor a
 		ld (hl),a
@@ -399,6 +426,24 @@ _interpret_char:
 		inc de
 		dec bc
 		ldir
+		ret
+
+clear_delayed_scroll:
+		push af
+		ld a,(fbterm_flags)
+		and !FLAG_DELAYED_SCROLL
+		ld (fbterm_flags),a
+		pop af
+		ret
+
+do_scroll_if_needed:
+		ld a,(fbterm_flags)
+		and FLAG_DELAYED_SCROLL
+		ret z
+		xor FLAG_DELAYED_SCROLL
+		ld (fbterm_flags),a
+
+		call do_scroll
 		ret
 
 do_scroll:
@@ -422,7 +467,7 @@ do_scroll:
 		pop de
 		add hl,hl
 		add hl,de	; hl=screen.width*6
-		ld de,(fb_base)
+		ld de,(_fb_base)
 		add hl,de
 
 		ldir
@@ -503,7 +548,7 @@ fb_cls:
 		push hl
 		pop bc
 
-        	ld hl,(fb_base)
+        	ld hl,(_fb_base)
 		push hl
 		pop de
 		inc de
@@ -515,7 +560,8 @@ fb_cls:
 
 show_cursor:
 		push af
-		ld a,(is_cursor_vis)
+		ld a,(fbterm_flags)
+		and FLAG_IS_CURSOR_VIS
 		or a
 		jr nz,1f
 	
@@ -526,7 +572,8 @@ show_cursor:
 
 hide_cursor:
 		push af
-		ld a,(is_cursor_vis)
+		ld a,(fbterm_flags)
+		and FLAG_IS_CURSOR_VIS
 		or a
 		jr z,1f
 	
@@ -540,9 +587,9 @@ toggle_cursor:
 		; get modeinfo (iy)
 		call fb_get_modeinfo
 
-		ld a,(is_cursor_vis)
-		xor 1
-		ld (is_cursor_vis),a
+		ld a,(fbterm_flags)
+		xor FLAG_IS_CURSOR_VIS
+		ld (fbterm_flags),a
 
 		call get_hl_ptr_cursor_pos
 
@@ -598,7 +645,7 @@ get_hl_ptr_cursor_pos:
 		add hl,bc
 
 		; add base framebuffer address
-		ld de,(fb_base)
+		ld de,(_fb_base)
 		add hl,de
 
 		ret
@@ -654,7 +701,7 @@ do_fbsplash:
 	.draw_logo:
 		call fb_get_modeinfo	; iy
 		; splash logo
-		ld de,(fb_base)
+		ld de,(_fb_base)
 		ld hl,logo
 		ld b,LOGO_H
 	1:	push bc
@@ -691,7 +738,7 @@ do_fbsplash:
 		ret
 
 splashmsg_1:	.asciz "Agon Computer 512K"
-splashmsg_2:	.asciz "EZ80 GPIO Video\r\n"
+splashmsg_2:	.asciz "eZ80 GPIO Video\r\n"
 
 LOGO_W .equ 16
 LOGO_H .equ 24
