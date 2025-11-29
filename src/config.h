@@ -19,4 +19,7 @@
 #define MOS_starLoadAddress 0xB0000			// Address for loading on-SD star commands
 #define MOS_systemAddress   0xBC000
 #define MOS_externLastRAMaddress 0xBFFFF
+
+#define FEAT_FRAMEBUFFER
+
 #endif /* CONFIG_H */

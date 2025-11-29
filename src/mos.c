@@ -56,7 +56,9 @@
 #include "umm_malloc.h"
 #include "bootmsg.h"
 #include "console.h"
-#include "fbconsole.h"
+#ifdef FEAT_FRAMEBUFFER
+# include "fbconsole.h"
+#endif /* FEAT_FRAMEBUFFER */
 #if DEBUG > 0
 # include "tests.h"
 #endif /* DEBUG */
@@ -1188,8 +1190,13 @@ int mos_cmdMEM(char * ptr) {
 		}
 	}
 
-	printf("Largest free MOS:HEAP fragment: %d bytes\r\n", try_len);
+	printf("Largest free MOS:HEAP fragment: %d b\r\n", try_len);
 	printf("Sysvars at &%06x\r\n", (uint24_t)sysvars);
+#ifdef FEAT_FRAMEBUFFER
+	if (fb_base) {
+		printf("Framebuffer at &%06x\r\n", (uint24_t)fb_base);
+	}
+#endif /* FEAT_FRAMEBUFFER */
 	printf("\r\n");
 
 	return 0;

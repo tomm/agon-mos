@@ -25,5 +25,6 @@ extern uint8_t fb_curs_x;
 extern uint8_t fb_curs_y;
 extern uint8_t fbterm_width;
 extern uint8_t fbterm_height;
+extern uint8_t *fb_base;  /* Location of framebuffer */
 
 #endif /* FBCONSOLE_H */
