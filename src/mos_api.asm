@@ -829,6 +829,12 @@ mos_api_pollkeyboardevent:
 			PUSH	BC
 			PUSH	DE
 			PUSH	HL
+
+			LD	A, MB		; Check if MBASE is 0
+			OR	A, A
+			JR	Z, 1f		; If it is, we can assume DE is 24 bit
+			CALL	SET_ADE24
+		1:
 			CALL	kbuf_remove
 			POP	HL
 			POP	DE
