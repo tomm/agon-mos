@@ -28,6 +28,7 @@
 			XDEF	UART1_serial_GETCH
 			XDEF	UART1_serial_PUTCH 
 
+			XDEF	_uart0_putch
 			XDEF	_putch
 			XDEF	_getch 
 			
@@ -236,6 +237,19 @@ UART_serial_NE:		POP	AF				; Tidy up the stack
 ;
 ; The C wrappers
 ;
+_uart0_putch:
+			PUSH	IY				; Standard C prologue
+			LD	IY, 0
+			ADD	IY, SP	
+
+			LD	A, (IY+6)			; INT ch (least significant byte)
+			LD	HL, 0				; HLU: The return value
+			LD	L, A 
+			CALL	UART0_serial_PUTCH
+
+			LD 	SP, IY				; Standard epilogue
+			POP	IY
+			RET
 
 ; INT putch(INT ch);
 ;

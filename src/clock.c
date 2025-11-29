@@ -57,10 +57,10 @@ void rtc_update() {
 	}
 	vpd_protocol_flags &= 0xDF;	// Reset bit 5
 
-	putch(23);					// Request the time from the ESP32
-	putch(0);
-	putch(VDP_rtc);
-	putch(0);					// 0: Get time
+	uart0_putch(23);					// Request the time from the ESP32
+	uart0_putch(0);
+	uart0_putch(VDP_rtc);
+	uart0_putch(0);					// 0: Get time
 
 	while((vpd_protocol_flags & 0x20) == 0);	
 }

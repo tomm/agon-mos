@@ -179,6 +179,7 @@ void close_UART1();
 
 extern volatile BYTE serialFlags;		// In globals.asm
 
+extern INT uart0_putch(INT ich);
 extern INT putch(INT ich);				// Now in serial.asm
 extern INT getch(void);					// Now in serial.asm
 
