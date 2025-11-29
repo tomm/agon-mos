@@ -163,6 +163,15 @@ int main(void) {
 	}
 	#endif
 
+#ifdef FEAT_FRAMEBUFFER
+	{
+		int err = mos_EXEC("/mos/fbinit.bat", cmd, sizeof cmd);	// Then load and run the config file
+		if (err > 0 && err != FR_NO_FILE) {
+			mos_error(err);
+		}
+	}
+#endif /* FEAT_FRAMEBUFFER */
+
 	// The main loop
 	//
 	while(1) {
