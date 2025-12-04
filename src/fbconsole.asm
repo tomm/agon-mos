@@ -29,6 +29,7 @@ cursor_mutex:	.db 1	; 1 when free, 0 when held
 
 FLAG_IS_CURSOR_VIS: .equ 1
 FLAG_DELAYED_SCROLL: .equ 2
+FLAG_LOGO_DISMISSED: .equ 4
 
 is_cursor_vis:	.ds 1
 
@@ -52,6 +53,12 @@ pre_image_callback:
 		; release cursor_mutex
 		ld hl,cursor_mutex
 		inc (hl)
+
+		ld a,(fbterm_flags)
+		and FLAG_LOGO_DISMISSED
+		ret nz
+
+		call draw_trippy_logo
 		ret
 
 ; returns zero on success, non-zero on error
@@ -98,7 +105,11 @@ _start_fbterm:
 		ld hl,rst10_handler
 		rst.lil 8
 
-		call do_fbsplash
+		call do_splashmsg
+
+		; Clear key event count to enable dismissing logo animation
+		xor a
+		ld (_keycount),a
 
 		pop ix
 		ld hl,0
@@ -668,16 +679,7 @@ _fb_lookupmode:
 font_4x6:
 		.include "font_4x6.inc"
 
-do_fbsplash:
-		push ix
-		ld ix,0
-		add ix,sp
-
-		; 'random' logo color in (ix-2)
-		ld a,r
-		sla a
-		push af
-
+do_splashmsg:
 		; splash text
 		ld a, 5
 		ld (_fb_curs_x),a
@@ -697,8 +699,29 @@ do_fbsplash:
 		; move cursor out of way of logo
 		ld a,5
 		ld (_fb_curs_y),a
+		ret
 
-	.draw_logo:
+
+draw_trippy_logo:
+		ld a,(_keycount)
+		or a
+		jr z,3f
+		; key pressed. dismiss logo animation
+		ld a,(fbterm_flags)
+		or FLAG_LOGO_DISMISSED
+		ld (fbterm_flags),a
+		ret
+	3:
+		push ix
+		push iy
+		ld ix,0
+		add ix,sp
+
+		; 'random' logo color in (ix-2)
+		ld a,r
+		sla a
+		push af
+
 		call fb_get_modeinfo	; iy
 		; splash logo
 		ld de,(_fb_base)
@@ -730,10 +753,8 @@ do_fbsplash:
 		pop hl
 		djnz 1b
 
-		call kbuf_isempty
-		jp z,.draw_logo
-
 		pop af
+		pop iy
 		pop ix
 		ret
 
