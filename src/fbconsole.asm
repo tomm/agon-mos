@@ -21,6 +21,7 @@ term_fg:	.ds 1
 term_bg:	.ds 1
 _fb_curs_x:	.ds 1
 _fb_curs_y:		.ds 1
+fb_curs_ptr:	.ds 3 	; pointer into screen memory of current cursor loc
 vdp_active_fn:	.ds 3
 vdp_fn_args:	.ds 1
 fbterm_flags:	.ds 1
@@ -79,6 +80,7 @@ _start_fbterm:
 		; move framebuffer to desired location
 		ld hl,(ix+9)	; _fb_base
 		ld (_fb_base),hl
+		ld (fb_curs_ptr),hl
 		ld (iy+1),hl
 		ld hl,(ix+12)	; fb_scanline_offsets
 		ld (iy+4),hl
@@ -199,6 +201,7 @@ _vdp_fn_gotoxy_arg1:
 		ld (_fb_curs_y),a
 		ld a,(vdp_fn_args)
 		ld (_fb_curs_x),a
+		call update_curs_ptr
 		ld hl,_interpret_char
 		ld (vdp_active_fn),hl
 		ret
@@ -239,6 +242,13 @@ move_cursor_left:
 		dec a
 		jr c,.move_up
 		ld (_fb_curs_x),a
+		; fast update of cursor pointer
+		ld hl,(fb_curs_ptr)
+		dec hl
+		dec hl
+		dec hl
+		dec hl
+		ld (fb_curs_ptr),hl
 		ret
 	.move_up:
 		ld a,(_fb_curs_y)
@@ -249,10 +259,12 @@ move_cursor_left:
 		ld a,(term_width)
 		dec a
 		ld (_fb_curs_x),a
+		call update_curs_ptr
 		ret
 	.at_top:
 		xor a
 		ld (_fb_curs_x),a
+		call update_curs_ptr
 		ret
 
 move_cursor_right:
@@ -262,7 +274,16 @@ move_cursor_right:
 		inc a
 		ld (_fb_curs_x),a
 		cp e
-		ret nz
+		jp z,1f
+		; fast update of cursor pointer
+		ld hl,(fb_curs_ptr)
+		inc hl
+		inc hl
+		inc hl
+		inc hl
+		ld (fb_curs_ptr),hl
+		ret
+	1:
 		; go to next line
 		xor a
 		ld (_fb_curs_x),a
@@ -277,8 +298,10 @@ move_cursor_down:
 		cp e
 		jr z,.scroll
 		ld (_fb_curs_y),a
+		call update_curs_ptr
 		ret
 	.scroll:
+		call update_curs_ptr
 		ld a,(fbterm_flags)
 		or FLAG_DELAYED_SCROLL
 		ld (fbterm_flags),a
@@ -290,6 +313,7 @@ move_cursor_up:
 		dec a
 		ret c
 		ld (_fb_curs_y),a
+		call update_curs_ptr
 		ret
 
 _interpret_char:
@@ -299,6 +323,8 @@ _interpret_char:
 		; handle special characters
 		cp 127
 		jp z,.handle_backspace
+		cp 32
+		jp nc,.normal_char
 		cp 31
 		jp z,.handle_gotoxy
 		cp 30
@@ -322,6 +348,7 @@ _interpret_char:
 		cp 8
 		jp z,.handle_curs_left
 
+	.normal_char:
 		; No control sequence. Just draw char
 		push af
 		call do_scroll_if_needed
@@ -374,6 +401,7 @@ _interpret_char:
 		xor a
 		ld (_fb_curs_x),a
 		ld (_fb_curs_y),a
+		call update_curs_ptr
 		jr .end
 
 	.handle_gotoxy:
@@ -391,6 +419,7 @@ _interpret_char:
 		call clear_delayed_scroll
 		xor a
 		ld (_fb_curs_x),a
+		call update_curs_ptr
 		jp .end
 
 	.handle_cls:
@@ -497,8 +526,9 @@ do_scroll:
 ;   the character.
 raw_draw_char:
 		push af
-		; ptr to hl, modeinfo to iy
-		call get_hl_ptr_cursor_pos
+		; modeinfo to iy
+		call fb_get_modeinfo
+		ld hl,(fb_curs_ptr)
 		push hl
 		pop ix
 		pop af
@@ -597,13 +627,10 @@ toggle_cursor:
 		push iy
 		; get modeinfo (iy)
 		call fb_get_modeinfo
-
 		ld a,(fbterm_flags)
 		xor FLAG_IS_CURSOR_VIS
 		ld (fbterm_flags),a
-
-		call get_hl_ptr_cursor_pos
-
+		ld hl,(fb_curs_ptr)
 		ld b,FONT_HEIGHT
 	.yloop:
 		push bc
@@ -611,7 +638,7 @@ toggle_cursor:
 		push hl
 	.xloop:
 		ld a,(hl)
-		xor 0xff
+		xor 0x3
 		ld (hl),a
 		inc hl
 		djnz .xloop
@@ -629,6 +656,11 @@ fb_get_modeinfo:	; to iy
 		ld a,3
 		rst.lil 0x20
 		pop af
+		ret
+
+update_curs_ptr:
+		call get_hl_ptr_cursor_pos
+		ld (fb_curs_ptr),hl
 		ret
 
 get_hl_ptr_cursor_pos:
@@ -683,6 +715,7 @@ do_splashmsg:
 		; splash text
 		ld a, 5
 		ld (_fb_curs_x),a
+		call update_curs_ptr
 		ld hl,splashmsg_1
 		ld bc,0
 		xor a
@@ -692,6 +725,7 @@ do_splashmsg:
 		ld (_fb_curs_x),a
 		ld a, 2
 		ld (_fb_curs_y),a
+		call update_curs_ptr
 		ld hl,splashmsg_2
 		ld bc,0
 		xor a
@@ -699,6 +733,7 @@ do_splashmsg:
 		; move cursor out of way of logo
 		ld a,5
 		ld (_fb_curs_y),a
+		call update_curs_ptr
 		ret
 
 
