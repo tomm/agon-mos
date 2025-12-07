@@ -1606,7 +1606,7 @@ void paginated_printf(const char *format, ...) {
 			putch(buf[i]);
 			if (buf[i] == '\n') {
 				paginated_print_row = paginated_print_row + 1;
-				if (paginated_print_row >= scrrows - 1) {
+				if (paginated_print_row >= scrrows - 2) {
 					printf("--more--");
 					kbuf_wait_keydown(&ev);
 					paginated_print_row = 0;
@@ -2473,11 +2473,11 @@ int mos_cmdFBMODE(char *)
 			struct fbmodeinfo_t *minfo = fb_lookupmode(mode);
 			if (minfo == NULL) break;
 			printf("Mode %d: %dx%d", mode, minfo->width, minfo->height);
-			if (minfo->flags & FBMODE_FLAG_SLOW) printf(" SLOW");
 			if (minfo->flags & FBMODE_FLAG_15KHZ) printf(" 15KHz");
-			if (minfo->flags & FBMODE_FLAG_31KHZ) printf(" 31KHz");
+			if (minfo->flags & FBMODE_FLAG_31KHZ) printf(" VGA");
 			if (minfo->flags & FBMODE_FLAG_30HZ) printf(" 30Hz");
 			if (minfo->flags & FBMODE_FLAG_60HZ) printf(" 60Hz");
+			if (minfo->flags & FBMODE_FLAG_SLOW) printf(" (SLOW)");
 			printf("\r\n");
 		}
 
