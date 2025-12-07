@@ -198,9 +198,17 @@ _vdp_fn_gotoxy_arg0:
 		ret
 
 _vdp_fn_gotoxy_arg1:
+		ld hl,term_height
+		cp (hl)
+		jr nc,1f
 		ld (_fb_curs_y),a
+	1:
+		dec hl ; hl=term_width
 		ld a,(vdp_fn_args)
+		cp (hl)
+		jr nc,2f
 		ld (_fb_curs_x),a
+	2:
 		call update_curs_ptr
 		ld hl,_interpret_char
 		ld (vdp_active_fn),hl
