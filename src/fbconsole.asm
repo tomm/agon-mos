@@ -107,11 +107,12 @@ _start_fbterm:
 		ld hl,rst10_handler
 		rst.lil 8
 
-		call do_splashmsg
-
 		; Clear key event count to enable dismissing logo animation
 		xor a
 		ld (_keycount),a
+
+		call do_splashmsg
+		call always_draw_trippy_logo
 
 		pop ix
 		ld hl,0
@@ -720,40 +721,22 @@ font_4x6:
 		.include "font_4x6.inc"
 
 do_splashmsg:
-		; splash text
-		ld a, 5
-		ld (_fb_curs_x),a
-		call update_curs_ptr
 		ld hl,splashmsg_1
 		ld bc,0
 		xor a
 		rst.lil 0x18
-
-		ld a, 5
-		ld (_fb_curs_x),a
-		ld a, 2
-		ld (_fb_curs_y),a
-		call update_curs_ptr
-		ld hl,splashmsg_2
-		ld bc,0
-		xor a
-		rst.lil 0x18
-		; move cursor out of way of logo
-		ld a,5
-		ld (_fb_curs_y),a
-		call update_curs_ptr
 		ret
-
 
 draw_trippy_logo:
 		ld a,(_keycount)
 		or a
-		jr z,3f
+		jr z,always_draw_trippy_logo
 		; key pressed. dismiss logo animation
 		ld a,(fbterm_flags)
 		or FLAG_LOGO_DISMISSED
 		ld (fbterm_flags),a
 		ret
+always_draw_trippy_logo:
 	3:
 		push ix
 		push iy
@@ -801,8 +784,9 @@ draw_trippy_logo:
 		pop ix
 		ret
 
-splashmsg_1:	.asciz "Agon Computer 512K"
-splashmsg_2:	.asciz "eZ80 GPIO Video\r\n"
+splashmsg_1:	.ascii "\x1e"
+		.ascii "     Agon Computer 512K\r\n\r\n"
+		.asciz "     eZ80 GPIO Video\r\n\r\n\r\n"
 
 LOGO_W .equ 16
 LOGO_H .equ 24
