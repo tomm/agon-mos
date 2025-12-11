@@ -6,7 +6,7 @@
 #define FBMODE_FLAG_SLOW (1<<0)
 #define FBMODE_FLAG_15KHZ (1<<1)
 #define FBMODE_FLAG_31KHZ (1<<2)
-#define FBMODE_FLAG_30HZ (1<<3)
+#define FBMODE_FLAG_50HZ (1<<3)
 #define FBMODE_FLAG_60HZ (1<<4)
 
 struct __attribute__((packed)) fbmodeinfo_t {
@@ -19,6 +19,7 @@ struct __attribute__((packed)) fbmodeinfo_t {
 };
 
 extern int start_fbterm(int mode, void *fb_base, void *fb_scanline_offsets);
+extern void stop_fbterm(void);
 extern uint8_t fb_driverversion(void);
 extern struct fbmodeinfo_t *fb_lookupmode(int mode);
 extern uint8_t fb_curs_x;

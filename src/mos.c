@@ -2475,11 +2475,12 @@ int mos_cmdFBMODE(char *)
 			printf("Mode %d: %dx%d", mode, minfo->width, minfo->height);
 			if (minfo->flags & FBMODE_FLAG_15KHZ) printf(" 15KHz");
 			if (minfo->flags & FBMODE_FLAG_31KHZ) printf(" VGA");
-			if (minfo->flags & FBMODE_FLAG_30HZ) printf(" 30Hz");
+			if (minfo->flags & FBMODE_FLAG_50HZ) printf(" 50Hz");
 			if (minfo->flags & FBMODE_FLAG_60HZ) printf(" 60Hz");
 			if (minfo->flags & FBMODE_FLAG_SLOW) printf(" (SLOW)");
 			printf("\r\n");
 		}
+		printf("Mode -1: Disable GPIO video\n");
 
 		return 0;
 	}
@@ -2496,6 +2497,14 @@ uint24_t mos_FBMODE(int mode)
 		printf("EZ80 GPIO video driver not found\r\n");
 		return 0;
 	}
+
+	if (mode == -1) {
+		stop_fbterm();
+		console_enable_vdp();
+		// missing un-hooking altered rst10
+		return 0;
+	}
+
 	struct fbmodeinfo_t *minfo = fb_lookupmode(mode);
 
 	if (minfo == 0) {
@@ -2510,10 +2519,5 @@ uint24_t mos_FBMODE(int mode)
 	}
 	fb_scanline_offsets = umm_malloc(sizeof(void*) * minfo->height * minfo->scan_multiplier);
 
-	int ret = start_fbterm(mode, fb_base, fb_scanline_offsets);
-	if (ret == 0) {
-		console_enable_fb();
-		//printf("FBConsole Mode %d: %dx%d @ %p\r\n", mode, (int)fbterm_width, (int)fbterm_height, fb_base);
-	}
-	return ret;
+	return start_fbterm(mode, fb_base, fb_scanline_offsets);
 }

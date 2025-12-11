@@ -18,6 +18,7 @@
 			
 			.text
 			
+			XDEF	_UART0_serial_TX
 			XDEF	UART0_serial_TX
 			XDEF	UART0_serial_RX
 			XDEF	UART0_serial_GETCH
@@ -90,6 +91,7 @@ UART1_wait_CTS:		GET_GPIO	PC_DR, 8		; Check Port C, bit 3 (CTS)
 ; - F: C if written
 ; - F: NC if timed out
 ;
+_UART0_serial_TX:
 UART0_serial_TX:	PUSH		BC			; Stack BC
 			PUSH		AF 			; Stack AF
 			LD		BC,TX_WAIT		; Set CB to the transmit timeout

@@ -58,6 +58,9 @@ void fbGetModeInformation() {
 void fbReadPalette(BYTE entry, BOOL wait) {
 }
 
+extern void UART0_serial_TX();
+extern void fbconsole_putch();
+
 struct console_driver_t vdp_console = {
 	.get_cursor_pos = &vdpGetCursorPos,
 	.get_mode_information = &vdpGetModeInformation,
@@ -75,4 +78,23 @@ struct console_driver_t *active_console = &vdp_console;
 void console_enable_fb()
 {
 	active_console = &fb_console;
+	/* Call mos_api_setresetvector to set rst10 vector */
+	asm volatile(
+		"ld a,0x61 \r\n"
+		"ld e,0x10 \r\n"
+		"ld hl,_fbconsole_rst10_handler \r\n"
+		"rst.lil 8\r\n"
+	);
+}
+
+void console_enable_vdp()
+{
+	active_console = &vdp_console;
+	/* Call mos_api_setresetvector to set rst10 vector */
+	asm volatile(
+		"ld a,0x61 \r\n"
+		"ld e,0x10 \r\n"
+		"ld hl,rst_10_handler \r\n"
+		"rst.lil 8\r\n"
+	);
 }

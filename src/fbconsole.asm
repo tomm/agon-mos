@@ -1,5 +1,6 @@
 		.assume adl=1
 		.global _start_fbterm
+		.global _stop_fbterm
 		.global _fbterm_width
 		.global _fbterm_height
 		.global _fb_curs_x
@@ -7,6 +8,7 @@
 		.global _fb_lookupmode
 		.global _fb_driverversion
 		.global _fb_base
+		.global _fbconsole_rst10_handler
 
 FONT_WIDTH: .equ 4
 FONT_HEIGHT: .equ 6
@@ -62,6 +64,11 @@ pre_image_callback:
 		call draw_trippy_logo
 		ret
 
+_stop_fbterm:
+		ld a,4		; api_videostop
+		rst.lil 0x20
+		ret
+
 ; returns zero on success, non-zero on error
 _start_fbterm:
 		push ix
@@ -101,11 +108,8 @@ _start_fbterm:
 
 		call term_init
 
-		; hook into rst10. only works with agondev mos
-		ld a,0x61
-		ld e,0x10
-		ld hl,rst10_handler
-		rst.lil 8
+		; Hook fbconsole to rst10
+		call _console_enable_fb
 
 		; Clear key event count to enable dismissing logo animation
 		xor a
@@ -123,7 +127,7 @@ _start_fbterm:
 		ld hl,2
 		ret
 
-rst10_handler:
+_fbconsole_rst10_handler:
 		push af
 		push bc
 		push de
@@ -246,6 +250,11 @@ _vdp_fn_rawchar:
 		ld (vdp_active_fn),hl
 		ret
 
+_vdp_fn_1arg_nop:
+		ld hl,_interpret_char
+		ld (vdp_active_fn),hl
+		ret
+
 move_cursor_left:
 		ld a,(_fb_curs_x)
 		dec a
@@ -340,6 +349,8 @@ _interpret_char:
 		jp z,.handle_gohome
 		cp 27
 		jp z,.handle_rawchar
+		cp 22
+		jp z,.handle_vdu22_changemode
 		cp 17
 		jp z,.handle_color
 		cp 16
@@ -356,6 +367,8 @@ _interpret_char:
 		jp z,.handle_curs_right
 		cp 8
 		jp z,.handle_curs_left
+		cp 7 ; bell: do nothing
+		jp .end
 
 	.normal_char:
 		; No control sequence. Just draw char
@@ -368,6 +381,12 @@ _interpret_char:
 		pop iy
 		pop ix
 		ret
+
+	.handle_vdu22_changemode:
+		; don't change mode. just CLS
+		ld hl,_vdp_fn_1arg_nop
+		ld (vdp_active_fn),hl
+		jp .handle_cls
 
 	.handle_rawchar:
 		ld hl,_vdp_fn_rawchar
@@ -411,18 +430,18 @@ _interpret_char:
 		ld (_fb_curs_x),a
 		ld (_fb_curs_y),a
 		call update_curs_ptr
-		jr .end
+		jp .end
 
 	.handle_gotoxy:
 		call clear_delayed_scroll
 		ld hl,_vdp_fn_gotoxy_arg0
 		ld (vdp_active_fn),hl
-		jr .end
+		jp .end
 
 	.handle_color:
 		ld hl,_vdp_fn_set_color
 		ld (vdp_active_fn),hl
-		jr .end
+		jp .end
 
 	.handle_cr:
 		call clear_delayed_scroll
@@ -480,7 +499,7 @@ _interpret_char:
 clear_delayed_scroll:
 		push af
 		ld a,(fbterm_flags)
-		and !FLAG_DELAYED_SCROLL
+		and ~FLAG_DELAYED_SCROLL
 		ld (fbterm_flags),a
 		pop af
 		ret

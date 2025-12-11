@@ -10,6 +10,7 @@ struct console_driver_t {
 };
 
 extern void console_enable_fb();
+extern void console_enable_vdp();
 
 extern struct console_driver_t vdp_console;
 extern struct console_driver_t fb_console;
