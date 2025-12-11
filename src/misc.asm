@@ -143,17 +143,14 @@ _exec16:		PUSH 	IY
 			LD	(IX + 4), 0xC9	; RET		
 ;
 _execSM:		CALL	_callSM		; Call the subroutine
+			CALL	_kbuf_clear	; Don't leave dirty keyboard buffer
 ;
 			POP	AF		; Restore the MBASE register
 			LD	MB, A
 			POP	IX
 			POP	DE
 			POP 	AF
-			LD	SP, IY          ; Standard epilogue
 			POP	IY
-
-			CALL	_kbuf_clear	; Don't leave dirty keyboard buffer
-
 			RET	
 
 ; Wait for timer0 to hit 0
