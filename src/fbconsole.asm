@@ -3,12 +3,15 @@
 		.global _stop_fbterm
 		.global _fbterm_width
 		.global _fbterm_height
+		.global _fbterm_fg
+		.global _fbterm_bg
 		.global _fb_curs_x
 		.global _fb_curs_y
 		.global _fb_lookupmode
 		.global _fb_driverversion
 		.global _fb_base
 		.global _fbconsole_rst10_handler
+		.global _fb_vdp_palette
 
 FONT_WIDTH: .equ 4
 FONT_HEIGHT: .equ 6
@@ -19,8 +22,8 @@ _fbterm_width:
 term_width:	.ds 1
 _fbterm_height:
 term_height:	.ds 1
-term_fg:	.ds 1
-term_bg:	.ds 1
+_fbterm_fg:	.ds 1
+_fbterm_bg:	.ds 1
 _fb_curs_x:	.ds 1
 _fb_curs_y:		.ds 1
 fb_curs_ptr:	.ds 3 	; pointer into screen memory of current cursor loc
@@ -177,9 +180,9 @@ term_init:	; size the terminal. needed after mode change
 		xor a
 		ld (_fb_curs_x),a
 		ld (_fb_curs_y),a
-		ld (term_bg),a
+		ld (_fbterm_bg),a
 		ld a,255
-		ld (term_fg),a
+		ld (_fbterm_fg),a
 
 		ld hl,_interpret_char
 		ld (vdp_active_fn),hl
@@ -192,7 +195,7 @@ term_putch:	; character in `a`
 		jp (hl)
 
 	.balign 0x10
-vdp_palette:
+_fb_vdp_palette:
 		db 0, 0b1100000, 0b1100, 0b1101100, 0b1, 0b1100001, 0b1101, 0b1101101
 		db 0b100110, 0b11100000, 0b11100, 0b11111100, 0b11, 0b11100011, 0b11111, 0b11111111
 
@@ -222,14 +225,14 @@ _vdp_fn_gotoxy_arg1:
 _vdp_fn_set_color:
 		push de
 
-		ld hl,term_fg
+		ld hl,_fbterm_fg
 		bit 7,a
 		jr z,1f
-		ld hl,term_bg
+		ld hl,_fbterm_bg
 		res 7,a
 	1:
 		and 15 	; clamp to 16-color agon palette
-		ld de,vdp_palette
+		ld de,_fb_vdp_palette
 		add a,e
 		ld e,a
 		ld a,(de)
@@ -367,7 +370,7 @@ _interpret_char:
 		jp z,.handle_curs_right
 		cp 8
 		jp z,.handle_curs_left
-		cp 7 ; bell: do nothing
+		; All other <32 chars: ignore
 		jp .end
 
 	.normal_char:
@@ -454,9 +457,9 @@ _interpret_char:
 		call clear_delayed_scroll
 		call fb_cls
 		xor a
-		ld (term_bg),a
+		ld (_fbterm_bg),a
 		dec a
-		ld (term_fg),a
+		ld (_fbterm_fg),a
 		jp .handle_gohome
 
 	.handle_clg:
@@ -568,9 +571,9 @@ raw_draw_char:
 		add hl,bc
 		; draw it
 		ld b,FONT_HEIGHT
-		ld a,(term_fg)
+		ld a,(_fbterm_fg)
 		ld d,a
-		ld a,(term_bg)
+		ld a,(_fbterm_bg)
 		ld e,a
 	.lineloop:
 		ld c,(hl)

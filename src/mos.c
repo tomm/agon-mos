@@ -70,7 +70,7 @@ extern void *	set_vector(unsigned int vector, void(*handler)(void));	// In vecto
 extern int 		exec16(UINT24 addr, char * params);	// In misc.asm
 extern int 		exec24(UINT24 addr, char * params);	// In misc.asm
 
-extern BYTE scrcols, scrcolours, scrpixelIndex; // In globals.asm
+extern BYTE scrcols, scrcolours; // In globals.asm
 extern volatile	BYTE keyascii;					// In globals.asm
 extern volatile	BYTE vpd_protocol_flags;		// In globals.asm
 extern BYTE 	rtc;							// In globals.asm
@@ -1607,7 +1607,7 @@ void paginated_printf(const char *format, ...) {
 			if (buf[i] == '\n') {
 				paginated_print_row = paginated_print_row + 1;
 				if (paginated_print_row >= scrrows - 2) {
-					printf("--more--");
+					printf("\x11\x0f--more--");
 					kbuf_wait_keydown(&ev);
 					paginated_print_row = 0;
 					putch('\r');
@@ -1703,11 +1703,9 @@ UINT24 mos_DIR(char* inputPath, BOOL longListing) {
     }
 
     if (useColour) {
-        active_console->read_palette(128, TRUE);
-        textFg = scrpixelIndex;
+        textFg = active_console->get_fg_color_index();
         fileColour = textFg;
-        active_console->read_palette(129, TRUE);
-        textBg = scrpixelIndex;
+        textBg = active_console->get_bg_color_index();
         while (dirColour == textBg || dirColour == fileColour) {
             dirColour = (dirColour + 1) % scrcolours;
         }

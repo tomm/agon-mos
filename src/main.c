@@ -49,7 +49,7 @@
 #include "bootmsg.h"
 #include "console.h"
 
-extern volatile BYTE scrcolours, scrpixelIndex;  // In globals.asm
+extern volatile BYTE scrcolours;  // In globals.asm
 
 extern void *	set_vector(unsigned int vector, void(*handler)(void));
 
@@ -130,12 +130,11 @@ int main(void) {
 	umm_init_heap((void*)__heapbot, HEAP_LEN);
 
 	scrcolours = 0;
-	scrpixelIndex = 255;
 	active_console->get_mode_information();
     while (scrcolours == 0) { }
-        active_console->read_palette(128, TRUE);
+        uint8_t fg = active_console->get_fg_color_index();
 
-	if (scrpixelIndex < 128) {
+	if (fg < 128) {
 		vdpSupportsTextPalette = TRUE;
 	} else {
 		// VDP doesn't properly support text colour reading

@@ -11,6 +11,7 @@ extern BYTE cursorX;
 extern BYTE cursorY;
 extern BYTE scrcols;
 extern BYTE scrrows;
+extern BYTE scrcolours, scrpixelIndex; // In globals.asm
 
 // Get the current cursor position from the VPD
 //
@@ -34,15 +35,22 @@ void vdpGetModeInformation() {
 
 // Get palette entry
 //
-void vdpReadPalette(BYTE entry, BOOL wait) {
+uint8_t vdpReadPalette(BYTE entry) {
 	vpd_protocol_flags &= 0xFB;					// Clear the semaphore flag
 	putch(23);
 	putch(0);
 	putch(VDP_palette);
 	putch(entry);
-	if (wait) {
-		wait_VDP(0x04);							// Wait until the semaphore has been set, or a timeout happens
-	}
+	wait_VDP(0x04);
+	return scrpixelIndex;
+}
+
+uint8_t vdp_get_fg_color_index() {
+	return vdpReadPalette(128);
+}
+
+uint8_t vdp_get_bg_color_index() {
+	return vdpReadPalette(129);
 }
 
 void fbGetCursorPos() {
@@ -53,9 +61,25 @@ void fbGetCursorPos() {
 void fbGetModeInformation() {
 	scrcols = fbterm_width;
 	scrrows = fbterm_height;
+	scrcolours = 16;
 }
 
-void fbReadPalette(BYTE entry, BOOL wait) {
+uint8_t fb_get_fg_color_index() {
+	for (int i=0; i<16; i++) {
+		if (fb_vdp_palette[i] == fbterm_fg) {
+			return i;
+		}
+	}
+	return 15;
+}
+
+uint8_t fb_get_bg_color_index() {
+	for (int i=0; i<16; i++) {
+		if (fb_vdp_palette[i] == fbterm_fg) {
+			return i;
+		}
+	}
+	return 0;
 }
 
 extern void UART0_serial_TX();
@@ -64,13 +88,15 @@ extern void fbconsole_putch();
 struct console_driver_t vdp_console = {
 	.get_cursor_pos = &vdpGetCursorPos,
 	.get_mode_information = &vdpGetModeInformation,
-	.read_palette = &vdpReadPalette,
+	.get_fg_color_index = &vdp_get_fg_color_index,
+	.get_bg_color_index = &vdp_get_bg_color_index,
 };
 
 struct console_driver_t fb_console = {
 	.get_cursor_pos = &fbGetCursorPos,
 	.get_mode_information = &fbGetModeInformation,
-	.read_palette = &fbReadPalette,
+	.get_fg_color_index = &fb_get_fg_color_index,
+	.get_bg_color_index = &fb_get_bg_color_index,
 };
 
 struct console_driver_t *active_console = &vdp_console;

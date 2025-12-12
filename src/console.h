@@ -6,7 +6,8 @@
 struct console_driver_t {
 	void (*get_cursor_pos)();
 	void (*get_mode_information)();
-	void (*read_palette)(uint8_t entry, bool wait);
+	uint8_t (*get_fg_color_index)();
+	uint8_t (*get_bg_color_index)();
 };
 
 extern void console_enable_fb();
