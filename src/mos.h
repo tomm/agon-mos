@@ -61,6 +61,7 @@ typedef enum {
 	MOS_NOT_IMPLEMENTED,		/* (23) API call not implemented */
 	MOS_OVERLAPPING_SYSTEM,		/* (24) File load prevented to stop overlapping system memory */
 	MOS_BAD_STRING,				/* (25) Bad or incomplete string */
+	MOS_INVALID_PARAMETER,				/* (26) Invalid parameter */
 } MOSRESULT;
 
 void 	mos_error(int error);
@@ -119,7 +120,7 @@ UINT24	mos_COPY_API(char *srcPath, char *dstPath);
 UINT24	mos_COPY(char *srcPath, char *dstPath, BOOL verbose);
 UINT24	mos_MKDIR(char * filename);
 UINT24 	mos_EXEC(char * filename, char * buffer, UINT24 size);
-UINT24  mos_FBMODE(int mode);
+UINT24  mos_FBMODE(int req_mode);
 
 UINT24	mos_FOPEN(char * filename, UINT8 mode);
 UINT24	mos_FCLOSE(UINT8 fh);

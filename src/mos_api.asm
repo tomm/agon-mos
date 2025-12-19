@@ -64,6 +64,7 @@
 			XREF	_mos_I2C_CLOSE
 			XREF	_mos_I2C_WRITE
 			XREF	_mos_I2C_READ
+			XREF	_mos_FBMODE
 			
 			XREF	_fat_EOF		; In mos.c
 
@@ -210,7 +211,7 @@ mos_api_block1_start:	DW	mos_api_getkey		; 0x00
 			DW  mos_api_inject_uart0_rx_byte ; 0x60
 			DW  mos_api_setresetvector  ; 0x61
 			DW  mos_api_pollkeyboardevent ; 0x62
-			DW  mos_api_not_implemented ; 0x63
+			DW  mos_api_set_fbmode ; 0x63
 			DW  mos_api_not_implemented ; 0x64
 			DW  mos_api_not_implemented ; 0x65
 			DW  mos_api_not_implemented ; 0x66
@@ -842,6 +843,17 @@ mos_api_pollkeyboardevent:
 			LD	A,1
 			RET	NZ
 			XOR	A
+			RET
+
+; Set framebuffer mode for MOS console
+;  A = 0x63
+;  B == 0 -> Set to mode number in C
+;  B == 1 -> Restore (re-init) current fb_mode
+;  C = Mode number to set (if B==0)
+mos_api_set_fbmode:
+			PUSH	BC
+			CALL	_mos_FBMODE
+			POP	BC
 			RET
 
 ; Open the I2C bus as master

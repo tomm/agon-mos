@@ -1,6 +1,7 @@
 Debug/
 Release/
 .vscode/
+examples/*.bin
 .DS_Store
 *.o
 bin

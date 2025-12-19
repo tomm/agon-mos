@@ -2465,6 +2465,7 @@ int mos_cmdFBMODE(char *)
 	}
 	// Get mode as argument
 	if (!mos_parseString(NULL, &value_str)) {
+		printf("Current mode: %d\r\n", (int8_t)fb_mode);
 		printf("Available modes:\r\n");
 
 		for (int mode=0; ; mode++) {
@@ -2484,30 +2485,39 @@ int mos_cmdFBMODE(char *)
 	}
 
         int mode = strtol(value_str, NULL, 10);
-	return mos_FBMODE(mode);
+	int ret = mos_FBMODE(mode);
+
+	if (ret == MOS_INVALID_PARAMETER) {
+		printf("Invalid mode\r\n");
+		return 0;
+	} else if (ret == MOS_NOT_IMPLEMENTED) {
+		printf("EZ80 GPIO video driver not found\r\n");
+		return 0;
+	} else {
+		return ret;
+	}
 }
 
 static void *fb_scanline_offsets = NULL;
 
-uint24_t mos_FBMODE(int mode)
+uint24_t mos_FBMODE(int req_mode)
 {
 	if (fb_driverversion() == 0) {
-		printf("EZ80 GPIO video driver not found\r\n");
-		return 0;
+		return MOS_NOT_IMPLEMENTED;
 	}
 
-	if (mode == -1) {
+	if (req_mode == -1) {
 		stop_fbterm();
 		console_enable_vdp();
-		// missing un-hooking altered rst10
 		return 0;
 	}
 
-	struct fbmodeinfo_t *minfo = fb_lookupmode(mode);
+	int set_mode = req_mode & 0x100 ? fb_mode : req_mode;
+
+	struct fbmodeinfo_t *minfo = fb_lookupmode(set_mode);
 
 	if (minfo == 0) {
-		printf("Invalid mode\r\n");
-		return 0;
+		return MOS_INVALID_PARAMETER;
 	}
 
 	void *fb_base = (void*)(MOS_systemAddress - minfo->width*minfo->height);
@@ -2517,5 +2527,5 @@ uint24_t mos_FBMODE(int mode)
 	}
 	fb_scanline_offsets = umm_malloc(sizeof(void*) * minfo->height * minfo->scan_multiplier);
 
-	return start_fbterm(mode, fb_base, fb_scanline_offsets);
+	return start_fbterm(set_mode, fb_base, fb_scanline_offsets);
 }

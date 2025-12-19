@@ -7,6 +7,7 @@
 		.global _fbterm_bg
 		.global _fb_curs_x
 		.global _fb_curs_y
+		.global _fb_mode
 		.global _fb_lookupmode
 		.global _fb_driverversion
 		.global _fb_base
@@ -18,6 +19,7 @@ FONT_HEIGHT: .equ 6
 
 		.bss
 
+_fb_mode:	.db 255 ; GPIO video disabled initially
 _fbterm_width:
 term_width:	.ds 1
 _fbterm_height:
@@ -70,6 +72,8 @@ pre_image_callback:
 _stop_fbterm:
 		ld a,4		; api_videostop
 		rst.lil 0x20
+		ld a,255
+		ld (_fb_mode),a
 		ret
 
 ; returns zero on success, non-zero on error
@@ -120,6 +124,9 @@ _start_fbterm:
 
 		call do_splashmsg
 		call always_draw_trippy_logo
+
+		ld a,(ix+6)
+		ld (_fb_mode),a
 
 		pop ix
 		ld hl,0

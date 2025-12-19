@@ -25,6 +25,7 @@ extern struct fbmodeinfo_t *fb_lookupmode(int mode);
 extern uint8_t fb_curs_x, fb_curs_y, fbterm_fg, fbterm_bg;
 extern uint8_t fbterm_width;
 extern uint8_t fbterm_height;
+extern uint8_t fb_mode;
 extern uint8_t *fb_base;  /* Location of framebuffer */
 extern uint8_t fb_vdp_palette[16];
 
