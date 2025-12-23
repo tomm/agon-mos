@@ -243,6 +243,12 @@ _vdp_fn_gotoxy_arg1:
 _vdp_fn_set_color:
 		push de
 
+		; Special (non-Acorn) set rgb332
+		cp 255
+		jr z,2f
+		cp 127
+		jr z,3f
+
 		ld hl,_fbterm_fg
 		bit 7,a
 		jr z,1f
@@ -259,6 +265,28 @@ _vdp_fn_set_color:
 		ld hl,_interpret_char
 		ld (vdp_active_fn),hl
 		pop de
+		ret
+	2:
+		ld hl,_vdp_fn_set_bg_rgb332
+		ld (vdp_active_fn),hl
+		pop de
+		ret
+	3:
+		ld hl,_vdp_fn_set_fg_rgb332
+		ld (vdp_active_fn),hl
+		pop de
+		ret
+
+_vdp_fn_set_bg_rgb332:
+		ld (_fbterm_bg),a
+		ld hl,_interpret_char
+		ld (vdp_active_fn),hl
+		ret
+
+_vdp_fn_set_fg_rgb332:
+		ld (_fbterm_fg),a
+		ld hl,_interpret_char
+		ld (vdp_active_fn),hl
 		ret
 
 _vdp_fn_rawchar:
