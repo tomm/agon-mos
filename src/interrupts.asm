@@ -37,7 +37,7 @@
 
 ; AGON Vertical Blank Interrupt handler
 ;
-_vblank_handler:	DI
+_vblank_handler:
 			PUSH		AF
 			SET_GPIO 	PB_DR, 2		; Need to set this to 2 for the interrupt to work correctly
 			PUSH		BC

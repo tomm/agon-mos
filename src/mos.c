@@ -165,6 +165,7 @@ static char * mos_errors[] = {
 	"Not implemented",
 	"Load overlaps system area",
 	"Bad string",
+	"Invalid parameter",
 };
 
 #define mos_errors_count (sizeof(mos_errors)/sizeof(char *))

@@ -222,6 +222,15 @@ _set_vector:		PUSH	IY
 			ADD	IY, SP				; Standard prologue
 			PUSH	AF
 			SAVEIMASK
+
+			; patch ISR to remove initial `di` if present.
+			LD	HL, (IY + 9)			; BC is isr address
+			LD	A,0xf3 ; di
+			CP	(HL)
+			JR	NZ,1f
+			XOR	A
+			LD	(HL),A	; set to nop
+		1:
 			LD	BC, 0				; Clear BC
 			LD	B, 2				; Calculate 2nd jump table offset
 			LD	C, (IY + 6)			; Vector offset

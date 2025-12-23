@@ -44,18 +44,22 @@ is_cursor_vis:	.ds 1
 		.text
 
 pre_image_callback:
+		push af
+		push bc
+		push de
+		push hl
+
 		; If cursor was temporarily hidden this frame (ie when drawing text)
 		; show it again before screen is exposed.
 		; Try to take cursor mutex
 		ld hl,cursor_mutex
 		srl (hl)
-		ret nc		; nope. someone else holds it
+		jr nc,2f		; nope. someone else holds it
 
 		ld a,(fbterm_flags)
 		and FLAG_IS_CURSOR_VIS
 		or a
 		jr nz,1f
-		ret nz
 		call show_cursor
 	1:
 		; release cursor_mutex
@@ -64,10 +68,17 @@ pre_image_callback:
 
 		ld a,(fbterm_flags)
 		and FLAG_LOGO_DISMISSED
-		ret nz
+		jr nz,2f
 
 		call draw_trippy_logo
-		ret
+	2:
+		pop hl
+		pop de
+		pop bc
+		pop af
+
+		; Jump to vblank handler
+		jp __2nd_jump_table + 100
 
 _stop_fbterm:
 		ld a,4		; api_videostop
