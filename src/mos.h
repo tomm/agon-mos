@@ -106,6 +106,7 @@ int		mos_cmdMEM(char *ptr);
 int		mos_cmdECHO(char *ptr);
 int		mos_cmdPRINTF(char *ptr);
 int		mos_cmdFBMODE(char *ptr);
+int		mos_cmdMEMDUMP(char *ptr);
 
 UINT24	mos_LOAD(char * filename, UINT24 address, UINT24 size);
 UINT24	mos_SAVE(char * filename, UINT24 address, UINT24 size);
@@ -173,6 +174,9 @@ UINT8	fat_EOF(FIL * fp);
 #define HELP_LOAD_ARGS		"<filename> [<addr>]"
 
 #define HELP_MEM			"Output memory statistics\r\n"
+
+#define HELP_MEMDUMP			"Show contents of memory\r\n"
+#define HELP_MEMDUMP_ARGS	"<addr> <len>"
 
 #define HELP_MKDIR			"Create a new folder on the SD card\r\n"
 #define HELP_MKDIR_ARGS		"<filename>"

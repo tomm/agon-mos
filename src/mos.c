@@ -114,6 +114,7 @@ static t_mosCommand mosCommands[] = {
 	{ "LS",			&mos_cmdDIR,		HELP_CAT_ARGS,		HELP_CAT },
 	{ "HOTKEY",		&mos_cmdHOTKEY,		HELP_HOTKEY_ARGS,	HELP_HOTKEY },
 	{ "MEM",		&mos_cmdMEM,		NULL,		HELP_MEM },
+	{ "MEMDUMP",		&mos_cmdMEMDUMP,	HELP_MEMDUMP_ARGS,	HELP_MEMDUMP },
 	{ "MKDIR", 		&mos_cmdMKDIR,		HELP_MKDIR_ARGS,	HELP_MKDIR },
 	{ "MOUNT",		&mos_cmdMOUNT,		NULL,			HELP_MOUNT },
 	{ "MOVE",		&mos_cmdREN,		HELP_RENAME_ARGS,	HELP_RENAME },
@@ -338,9 +339,13 @@ BOOL mos_parseNumber(char * ptr, UINT24 * p_Value) {
 	if(p == NULL) {
 		return 0;
 	}
-	if(*p == '&') {
+	if(*p == '&' || *p == '$') {
 		base = 16;
 		p++;
+	}	
+	if(*p == '0' && tolower(p[1]) == 'x') {
+		base = 16;
+		p+=2;
 	}	
 	value = strtol(p, &e, base);
 	if(*e != 0) {
@@ -1203,6 +1208,34 @@ int mos_cmdMEM(char * ptr) {
 	return 0;
 }
 
+int mos_cmdMEMDUMP(char * ptr) {
+	UINT24 	addr, len;
+	if(!mos_parseNumber(NULL, &addr)) {
+		return FR_INVALID_PARAMETER;
+	}
+	if (!mos_parseNumber(NULL, &len)) {
+		len = 0x100;
+	}
+	int i=0;
+	const int width = scrcols <= 40 ? 8 : 16;
+	while (i<len) {
+		printf("%06x:", addr+i);
+		for (int c=0; c<width; c++) {
+			if ((c&3) == 0) putch(' ');
+			printf("%02x", *(uint8_t*)(addr+i+c));
+		}
+		putch(' ');
+		for (int c=0; c<width; c++) {
+			putch(27);
+			putch(*(uint8_t*)(addr+i+c));
+		}
+		printf("\r\n");
+		i += width;
+	}
+	return 0;
+}
+
+
 // CREDITS
 // Parameters:
 // - ptr: Pointer to the argument string in the line edit buffer
@@ -1242,7 +1275,7 @@ int mos_cmdTYPE(char * ptr) {
 // - MOS error code
 //
 int	mos_cmdCLS(char *ptr) {
-	putchar(12);
+	putch(12);
 	return 0;
 }
 
@@ -1423,6 +1456,8 @@ UINT24 mos_TYPE(char * filename) {
 	UINT   	br;
 	char	buf[512];
 	int		i;
+	struct keyboard_event_t ev;
+	bool do_wait = false;
 
 	fr = f_open(&fil, filename, FA_READ);
 	if (fr != FR_OK) {
@@ -1433,10 +1468,31 @@ UINT24 mos_TYPE(char * filename) {
 		fr = f_read(&fil, (void *)buf, sizeof buf, &br);
 		if (br == 0)
 			break;
-		for (i = 0; i < br; ++i)
-			putchar(buf[i]);
-	}
+		for (i = 0; i < br; ++i) {
+			if ((buf[i] >= 32 && buf[i] <= 127) || (buf[i] == '\r')) {
+				putch(buf[i]);
+			} else if (buf[i] == '\n') {
+				putch(buf[i]);
+				putch('\r');
+			} else {
+				// escape non-ascii stuff so it's drawn to screen, not interpreted
+				putch(27);
+				putch(buf[i]);
+			}
 
+			/* Allow user to interrupt */
+			if (i == sizeof(buf)-1 || buf[i] == '\n') {
+				if (kbuf_poll_event(&ev) && ev.isdown) {
+					if (ev.ascii == 27) goto stop;
+					// Wait for any key before resuming
+					kbuf_wait_keydown(&ev);
+					if (ev.ascii == 27) goto stop;
+				}
+
+			}
+		}
+	}
+stop:
 	f_close(&fil);
 	return FR_OK;
 }
