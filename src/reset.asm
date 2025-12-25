@@ -45,7 +45,7 @@ _nmi:		jp ram_nmi_handler
 		; ROM descriptor table
 		.org	0x6b
 		.ascii 	"MOS"
-		.db  1			; Descriptor table version
+		.db  2			; Descriptor table version
         	.d24 _f_chdir
         	.d24 _f_chdrive
         	.d24 _f_close
@@ -71,6 +71,8 @@ _nmi:		jp ram_nmi_handler
         	.d24 _f_truncate
         	.d24 _f_unlink
         	.d24 _f_write
+		.d24 _SD_readBlocks
+		.d24 _SD_writeBlocks
 
 ; Interrupt Vector Table
 ;  - this segment must be aligned on a 256 byte boundary anywhere below
