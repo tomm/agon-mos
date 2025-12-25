@@ -65,6 +65,8 @@
 			XREF	_mos_I2C_WRITE
 			XREF	_mos_I2C_READ
 			XREF	_mos_FBMODE
+			XREF	_console_enable_fb
+			XREF	_console_enable_vdp
 			
 			XREF	_fat_EOF		; In mos.c
 
@@ -212,7 +214,7 @@ mos_api_block1_start:	DW	mos_api_getkey		; 0x00
 			DW  mos_api_setresetvector  ; 0x61
 			DW  mos_api_pollkeyboardevent ; 0x62
 			DW  mos_api_set_fbmode ; 0x63
-			DW  mos_api_not_implemented ; 0x64
+			DW  mos_api_set_stdout ; 0x64
 			DW  mos_api_not_implemented ; 0x65
 			DW  mos_api_not_implemented ; 0x66
 			DW  mos_api_not_implemented ; 0x67
@@ -854,6 +856,29 @@ mos_api_set_fbmode:
 			PUSH	BC
 			CALL	_mos_FBMODE
 			POP	BC
+			RET
+
+; Set the device that rst 0x10/rst 0x18 output to
+; Input:
+;  A = 0x64
+;  C == 0 -> Set output to UART0 (VDP, default)
+;  C == 1 -> Reserved (future: UART1)
+;  C == 2 -> Set output to fbconsole (GPIO video)
+; Output:
+;  A = 0 or error code
+mos_api_set_stdout:
+			LD A,C
+			OR A
+			JR NZ, 1f
+			CALL _console_enable_vdp
+			XOR A
+			RET
+		1:	CP 2
+			JR NZ, 2f
+			CALL _console_enable_fb
+			XOR A
+			RET
+		2:	LD A,26  ; MOS_INVALID_PARAMETER
 			RET
 
 ; Open the I2C bus as master
