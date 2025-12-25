@@ -121,10 +121,9 @@ _start_fbterm:
 		ld hl,cursor_mutex
 		ld (hl),1
 
+		call term_init
 		; clear screen
 		call fb_cls
-
-		call term_init
 
 		; Hook fbconsole to rst10
 		call _console_enable_fb
@@ -138,6 +137,10 @@ _start_fbterm:
 
 		ld a,(ix+6)
 		ld (_fb_mode),a
+
+		; Hack -- mark _vdp_protocol_flags because BBC BASIC checks it
+		ld hl,_vpd_protocol_flags
+		set 4,(hl)
 
 		pop ix
 		ld hl,0
@@ -299,6 +302,16 @@ _vdp_fn_rawchar:
 		ld (vdp_active_fn),hl
 		ret
 
+_vdp_changemode:
+		ld hl,0
+		ld l,a
+		push hl
+		call _mos_FBMODE
+		pop hl
+		ld hl,_interpret_char
+		ld (vdp_active_fn),hl
+		ret
+
 _vdp_fn_1arg_nop:
 		ld hl,_interpret_char
 		ld (vdp_active_fn),hl
@@ -432,10 +445,9 @@ _interpret_char:
 		ret
 
 	.handle_vdu22_changemode:
-		; don't change mode. just CLS
-		ld hl,_vdp_fn_1arg_nop
+		ld hl,_vdp_changemode
 		ld (vdp_active_fn),hl
-		jp .handle_cls
+		jp .end
 
 	.handle_rawchar:
 		ld hl,_vdp_fn_rawchar
