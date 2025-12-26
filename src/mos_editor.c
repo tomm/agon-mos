@@ -367,24 +367,24 @@ static void do_tab_complete(char *buffer, int *out_InsertPos, int *out_buflen)
 // Returns:
 // - The exit key pressed (ESC or CR)
 //
-UINT24 mos_EDITLINE(char * buffer, int bufferLength, UINT8 flags) {
+UINT24 mos_EDITLINE(char* buffer, int bufferLength, UINT8 flags)
+{
 	BOOL clear = flags & 0x01;		// Clear the buffer on entry
-	BOOL enableTab = flags & 0x02;	// Enable tab completion (default off)
-	BOOL enableHotkeys = !(flags & 0x04); // Enable hotkeys (default on)
-	BOOL enableHistory = !(flags & 0x08); // Enable history (default on)
-	BYTE keya = 0;					// The ASCII key	
-	BYTE keyc = 0;					// The FabGL keycode
-	BYTE keyr = 0;					// The ASCII key to return back to the calling program
+	BOOL enableTab = flags & 0x02;		// Enable tab completion (default off)
+	BOOL enableHotkeys = !(flags & 0x04);	// Enable hotkeys (default on)
+	BOOL enableHistory = !(flags & 0x08);	// Enable history (default on)
+	BYTE keya = 0;				// The ASCII key
+	BYTE keyr = 0;				// The ASCII key to return back to the calling program
 
-	int  limit = bufferLength - 1;	// Max # of characters that can be entered
-	int	 insertPos;					// The insert position
-	int  len = 0;					// Length of current input
+	int limit = bufferLength - 1;		// Max # of characters that can be entered
+	int insertPos;				// The insert position
+	int len = 0;				// Length of current input
 	history_no = history_size;		// Ensure our current "history" is the end of the list
 
-	active_console->get_mode_information();			// Get the current screen dimensions
-	
-	if (clear) {					// Clear the buffer as required
-		buffer[0] = 0;	
+	active_console->get_mode_information(); // Get the current screen dimensions
+
+	if (clear) {				// Clear the buffer as required
+		buffer[0] = 0;
 		insertPos = 0;
 	} else {
 		printf("%s", buffer);		// Otherwise output the current buffer
@@ -399,101 +399,107 @@ UINT24 mos_EDITLINE(char * buffer, int bufferLength, UINT8 flags) {
 		len = strlen(buffer);
 		kbuf_wait_keydown(&ev);
 		keya = ev.ascii;
-		keyc = ev.vkey;
-		switch (keyc) {
-			//
-			// First any extended (non-ASCII keys)
-			//
-			case 0x85: {	// HOME
-				insertPos = gotoEditLineStart(insertPos);
-			} break;
-			case 0x87: {	// END
-				insertPos = gotoEditLineEnd(insertPos, len);
-			} break;
-			
-			case 0x92: {	// PgUp
-				historyAction = 2;
-			} break;
-			
-			case 0x94: {	// PgDn
-				historyAction = 3;
-			} break;
+		switch (ev.vkey) {
+		//
+		// First any extended (non-ASCII keys)
+		//
+		case 0x85: { // HOME
+			insertPos = gotoEditLineStart(insertPos);
+		} break;
+		case 0x87: { // END
+			insertPos = gotoEditLineEnd(insertPos, len);
+		} break;
 
-			case 0x9F: //F1
-			case 0xA0: //F2
-			case 0xA1: //F3
-			case 0xA2: //F4
-			case 0xA3: //F5
-			case 0xA4: //F6
-			case 0xA5: //F7
-			case 0xA6: //F8
-			case 0xA7: //F9
-			case 0xA8: //F10
-			case 0xA9: //F11	
-			case 0xAA: //F12
-			{
-				UINT8 fkey = keyc - 0x9F;
-				if (enableHotkeys && handleHotkey(fkey, buffer, bufferLength, insertPos, len)) {
-					len = strlen(buffer);
-					insertPos = len;
-					keya = 0x0D;
-					// Key was present, so drop through to ASCII key handling
-				} else break; // key wasn't present, so do nothing
-			}	
-			
-			//
-			// Now the ASCII keys
-			//
-			default: {
-				if (keya > 0) {
-					if (keya >= 0x20 && keya != 0x7F) {
-						if (insertCharacter(buffer, keya, insertPos, len, limit)) {
-							insertPos++;
-						}
-					} else {				
-						switch (keya) {
-							case 0x1: 		// CTRL-A
-								insertPos = gotoEditLineStart(insertPos);
-								break;
-							case 0x5:		// CTRL-E
-								insertPos = gotoEditLineEnd(insertPos, len);
-								break;
-							case 0x0D:		// Enter
-								historyAction = 1;
-								// fall through to...
-							case 0x1B:	{	// Escape
-								keyr = keya;
-							} break;
-							case 0x08:	{	// Cursor Left
-								if (insertPos > 0) {
-									doLeftCursor();
-									insertPos--;
-								}
-							} break;
-							case 0x15:	{	// Cursor Right
-								if (insertPos < len) {
-									doRightCursor();
-									insertPos++;
-								}
-							} break;
-							case 0x0A:	// Cursor Down
-								historyAction = 3;
-								break;
-							case 0x0B:	// Cursor Up
-								historyAction = 2;
-								break;
-							case 0x09:	// Tab
-								if (enableTab) {
-									do_tab_complete(buffer, &insertPos, &len);
-								}
-								break;
-							case 0x7F: {	// Backspace
-								if (deleteCharacter(buffer, insertPos, len)) {
-									insertPos--;
-								}
-							} break;
-						}					
+		case 0x92: { // PgUp
+			historyAction = 2;
+		} break;
+
+		case 0x94: { // PgDn
+			historyAction = 3;
+		} break;
+
+		case 0x9F:   // F1
+		case 0xA0:   // F2
+		case 0xA1:   // F3
+		case 0xA2:   // F4
+		case 0xA3:   // F5
+		case 0xA4:   // F6
+		case 0xA5:   // F7
+		case 0xA6:   // F8
+		case 0xA7:   // F9
+		case 0xA8:   // F10
+		case 0xA9:   // F11
+		case 0xAA:   // F12
+		{
+			UINT8 fkey = ev.vkey - 0x9F;
+			if (enableHotkeys && handleHotkey(fkey, buffer, bufferLength, insertPos, len)) {
+				len = strlen(buffer);
+				insertPos = len;
+				keya = 0x0D;
+				// Key was present, so drop through to ASCII key handling
+			} else
+				break; // key wasn't present, so do nothing
+		}
+
+		//
+		// Now the ASCII keys
+		//
+		default:
+			if (keya == 0)
+				break;
+			if (keya >= 0x20 && keya != 0x7F) {
+				if (insertCharacter(buffer, keya, insertPos, len, limit)) {
+					insertPos++;
+				}
+			} else {
+				switch (keya) {
+				case 0x1:		   // CTRL-A
+					insertPos = gotoEditLineStart(insertPos);
+					break;
+				case 0x5:		   // CTRL-E
+					insertPos = gotoEditLineEnd(insertPos, len);
+					break;
+				case 0x08:		   // Cursor Left
+					if (insertPos > 0) {
+						doLeftCursor();
+						insertPos--;
 					}
+					break;
+				case 0x09:		   // Tab
+					if (enableTab) {
+						do_tab_complete(buffer, &insertPos, &len);
+					}
+					break;
+				case 0x0A:		   // Cursor Down
+					historyAction = 3;
+					break;
+				case 0x0B:		   // Cursor Up
+					historyAction = 2;
+					break;
+				case 0x0D:		   // Enter
+					historyAction = 1;
+					keyr = keya;
+					break;
+				case 0x0E:		   // CTRL-N
+					historyAction = 3; // Next history item
+					break;
+				case 0x10:		   // CTRL-P
+					historyAction = 2; // Previous history item
+					break;
+				case 0x15:		   // Cursor Right
+					if (insertPos < len) {
+						doRightCursor();
+						insertPos++;
+					}
+					break;
+				case 0x1B:		   // Escape
+					keyr = keya;
+					break;
+				case 0x7F:		   // Backspace
+					if (deleteCharacter(buffer, insertPos, len)) {
+						insertPos--;
+					}
+					break;
 				}
 			}
 		}
@@ -501,33 +507,34 @@ UINT24 mos_EDITLINE(char * buffer, int bufferLength, UINT8 flags) {
 		if (enableHistory) {
 			BOOL lineChanged = FALSE;
 			switch (historyAction) {
-				case 1: { // Push new item to stack
-					editHistoryPush(buffer);
-				} break;
-				case 2: { // Move up in history
-					lineChanged = editHistoryUp(buffer, insertPos, len, limit);
-				} break;
-				case 3: { // Move down in history
-					lineChanged = editHistoryDown(buffer, insertPos, len, limit);
-				} break;
+			case 1:				    // Push new item to stack
+				editHistoryPush(buffer);
+				break;
+			case 2:				    // Move up in history
+				lineChanged = editHistoryUp(buffer, insertPos, len, limit);
+				break;
+			case 3:				    // Move down in history
+				lineChanged = editHistoryDown(buffer, insertPos, len, limit);
+				break;
 			}
 
 			if (lineChanged) {
-				printf("%s", buffer);							// Output the buffer
-				insertPos = strlen(buffer);						// Set cursor to end of string
+				printf("%s", buffer);	    // Output the buffer
+				insertPos = strlen(buffer); // Set cursor to end of string
 				len = strlen(buffer);
 			}
 		}
 	}
-	len -= insertPos;				// Now just need to cursor to end of line; get # of characters to cursor
+	len -= insertPos;				    // Now just need to cursor to end of line; get # of characters to cursor
 
-	while (len >= scrcols) {		// First cursor down if possible
+	while (len >= scrcols) {			    // First cursor down if possible
 		putch(0x0A);
 		len -= scrcols;
 	}
-	while (len-- > 0) putch(0x09);	// Then cursor right for the remainder
+	while (len-- > 0)
+		putch(0x09);				    // Then cursor right for the remainder
 
-	return keyr;					// Finally return the keycode
+	return keyr;					    // Finally return the keycode
 }
 
 void editHistoryInit() {
