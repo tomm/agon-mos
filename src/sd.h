@@ -17,7 +17,7 @@
 #define SD_READY	0
 
 BYTE	SD_readBlocks(DWORD addr, BYTE *buf, WORD count);
-BYTE	SD_writeBlocks(DWORD addr, BYTE *buf, WORD count);
+BYTE	SD_writeBlocks(DWORD addr, const BYTE *buf, WORD count);
 
 BYTE	SD_init();
 
