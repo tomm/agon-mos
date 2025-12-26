@@ -36,11 +36,7 @@ void mos_bootmsg(void)
 {
 	printf("Agon ");
 	rainbow_msg(VERSION_VARIANT);
-	printf(" MOS %d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
-
-#ifdef VERSION_IS_EXPERIMENTAL
-	printf(" (git-%s)", VERSION_GITREF);
-#endif
+	printf(" MOS " VERSION_GITREF);
 
 // Show version subtitle, if we have one
 #ifdef VERSION_SUBTITLE
