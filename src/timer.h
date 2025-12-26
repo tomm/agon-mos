@@ -14,6 +14,8 @@
 #ifndef TIMER_H
 #define TIMER_H
 
+#include "defines.h"
+
 extern long SysClkFreq;
 extern volatile BYTE vpd_protocol_flags; // In globals.asm
 
