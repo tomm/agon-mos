@@ -132,8 +132,12 @@ _start_fbterm:
 		xor a
 		ld (_keycount),a
 
+		ld a,(fbterm_flags)
+		and FLAG_LOGO_DISMISSED
+		jr nz,1f
 		call do_splashmsg
 		call always_draw_trippy_logo
+	1:
 
 		ld a,(ix+6)
 		ld (_fb_mode),a
@@ -823,9 +827,12 @@ always_draw_trippy_logo:
 		ld ix,0
 		add ix,sp
 
-		; 'random' logo color in (ix-2)
-		ld a,r
-		sla a
+		; logo color (palette index) in (ix-2)
+		; get videosetup
+		ld a,2
+		rst.lil 0x20
+		ld a,(iy+0) ; frame count
+		and 31
 		push af
 
 		call fb_get_modeinfo	; iy
@@ -836,10 +843,17 @@ always_draw_trippy_logo:
 	1:	push bc
 		ld b,LOGO_W
 		push de
+
+		; color in c
 		inc (ix-2)
-		ld a,r
-		ld c,a
-		sla c
+		ld a,(ix-2)
+		and 31
+		push hl
+		ld hl,rainbow_cols
+		add a,l
+		ld l,a
+		ld c,(hl)
+		pop hl
 	2:
 		ld a,(hl)
 		and c
@@ -867,6 +881,43 @@ always_draw_trippy_logo:
 splashmsg_1:	.ascii "\x1e"
 		.ascii "     Agon Computer 512K\r\n\r\n"
 		.asciz "     eZ80 GPIO Video\r\n\r\n\r\n"
+.balign 32
+rainbow_cols:	; Very important
+		.db 0b11100000
+		.db 0b11100100
+		.db 0b11101000
+		.db 0b11101100
+		.db 0b11110000
+		.db 0b11110100
+		.db 0b11111000
+		.db 0b11111100
+
+		.db 0b11011100
+		.db 0b10111100
+		.db 0b10011100
+		.db 0b01111100
+		.db 0b01011100
+		.db 0b00111100
+		.db 0b00011100
+		.db 0b00011101
+
+		.db 0b00011110
+		.db 0b00011011
+		.db 0b00010011
+		.db 0b00001011
+		.db 0b00000111
+		.db 0b00000011
+		.db 0b00100011
+		.db 0b01000011
+
+		.db 0b01100011
+		.db 0b10000011
+		.db 0b10100011
+		.db 0b11000011
+		.db 0b11100011
+		.db 0b11100010
+		.db 0b11100001
+		.db 0b11100000
 
 LOGO_W .equ 16
 LOGO_H .equ 24
