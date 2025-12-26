@@ -8,3 +8,6 @@ LDHAS_EXIT_HANDLER=0
 LDHAS_ARG_PROCESSING=0
 
 include makefile.inc
+
+format:
+	clang-format-16 -i src/*.c src/*.h --style=file:./clang-format.conf

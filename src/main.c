@@ -29,39 +29,39 @@
  * 11/11/2023:				RC3	+ See Github for full list of changes
  */
 
-#include "ez80f92.h"
 #include "defines.h"
+#include "ez80f92.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "defines.h"
+#include "bootmsg.h"
+#include "clock.h"
 #include "config.h"
-#include "uart.h"
+#include "console.h"
+#include "defines.h"
+#include "ff.h"
+#include "i2c.h"
+#include "mos.h"
+#include "mos_editor.h"
 #include "spi.h"
 #include "timer.h"
-#include "ff.h"
-#include "clock.h"
-#include "mos_editor.h"
-#include "mos.h"
-#include "i2c.h"
+#include "uart.h"
 #include "umm_malloc.h"
-#include "bootmsg.h"
-#include "console.h"
 
-extern volatile BYTE scrcolours;  // In globals.asm
+extern volatile BYTE scrcolours; // In globals.asm
 
-extern void *	set_vector(unsigned int vector, void(*handler)(void));
+extern void* set_vector(unsigned int vector, void (*handler)(void));
 
-extern void 	vblank_handler(void);
-extern void 	uart0_handler(void);
-extern void 	i2c_handler(void);
+extern void vblank_handler(void);
+extern void uart0_handler(void);
+extern void i2c_handler(void);
 
-extern char hardReset;		// 1 = hard cpu reset, 0 = soft reset
-extern volatile	char 	keycode;		// Keycode 
-extern volatile char	gp;				// General poll variable
+extern char hardReset;		 // 1 = hard cpu reset, 0 = soft reset
+extern volatile char keycode;	 // Keycode
+extern volatile char gp;	 // General poll variable
 
-extern BOOL	vdpSupportsTextPalette;
+extern BOOL vdpSupportsTextPalette;
 
 // Wait for the ESP32 to respond with a GP packet to signify it is ready
 // Parameters:
@@ -70,59 +70,62 @@ extern BOOL	vdpSupportsTextPalette;
 // Returns:
 // - 1 if the function succeeded, otherwise 0
 //
-int wait_ESP32(UINT24 baudRate) {	
-	UART 	UART0;
-	int	i, t;
+int wait_ESP32(UINT24 baudRate)
+{
+	UART UART0;
+	int i, t;
 
-	UART0.baudRate = baudRate;			// Initialise the UART object
+	UART0.baudRate = baudRate;	  // Initialise the UART object
 	UART0.dataBits = 8;
 	UART0.stopBits = 1;
 	UART0.parity = PAR_NOPARITY;
 	UART0.flowControl = FCTL_HW;
 	UART0.interrupts = UART_IER_RECEIVEINT;
 
-	open_UART0(&UART0);					// Open the UART 
-	init_timer0(10, 16, 0x00);  		// 10ms timer for delay
-	gp = 0;								// Reset the general poll byte	
-	for(t = 0; t < 200; t++) {			// A timeout loop (200 x 50ms = 10s)
-		putch(23);						// Send a general poll packet
+	open_UART0(&UART0);		  // Open the UART
+	init_timer0(10, 16, 0x00);	  // 10ms timer for delay
+	gp = 0;				  // Reset the general poll byte
+	for (t = 0; t < 200; t++) {	  // A timeout loop (200 x 50ms = 10s)
+		putch(23);		  // Send a general poll packet
 		putch(0);
 		putch(VDP_gp);
 		putch(1);
-		for(i = 0; i < 5; i++) {		// Wait 50ms
+		for (i = 0; i < 5; i++) { // Wait 50ms
 			wait_timer0();
 		}
-		if(gp == 1) break;				// If general poll returned, then exit for loop
+		if (gp == 1) break;	  // If general poll returned, then exit for loop
 	}
-	enable_timer0(0);					// Disable the timer
+	enable_timer0(0);		  // Disable the timer
 	return gp;
 }
 
 // Initialise the interrupts
 //
-static void init_interrupts(void) {
-	set_vector(PORTB1_IVECT, vblank_handler); 	// 0x32
-	set_vector(UART0_IVECT, uart0_handler);		// 0x18
-	set_vector(I2C_IVECT, i2c_handler);			// 0x1C
+static void init_interrupts(void)
+{
+	set_vector(PORTB1_IVECT, vblank_handler); // 0x32
+	set_vector(UART0_IVECT, uart0_handler);	  // 0x18
+	set_vector(I2C_IVECT, i2c_handler);	  // 0x1C
 }
 
 // The main loop
 //
-int main(void) {
+int main(void)
+{
 	asm volatile("di");
-	init_interrupts();								// Initialise the interrupt vectors
-	init_rtc();										// Initialise the real time clock
-	init_spi();										// Initialise SPI comms for the SD card interface
-	init_UART0();									// Initialise UART0 for the ESP32 interface
-	init_UART1();									// Initialise UART1
+	init_interrupts();		   // Initialise the interrupt vectors
+	init_rtc();			   // Initialise the real time clock
+	init_spi();			   // Initialise SPI comms for the SD card interface
+	init_UART0();			   // Initialise UART0 for the ESP32 interface
+	init_UART1();			   // Initialise UART1
 	asm volatile("ei");
-	
-	if(!wait_ESP32(1152000)) {				// Try to lock onto the ESP32 at maximum rate
-		if(!wait_ESP32(384000))	{		// If that fails, then fallback to the lower baud rate
-			gp = 2;									// Flag GP as 2, just in case we need to handle this error later
+
+	if (!wait_ESP32(1152000)) {	   // Try to lock onto the ESP32 at maximum rate
+		if (!wait_ESP32(384000)) { // If that fails, then fallback to the lower baud rate
+			gp = 2;		   // Flag GP as 2, just in case we need to handle this error later
 		}
-	}	
-	if(hardReset == 0) {
+	}
+	if (hardReset == 0) {
 		// clear screen on soft reset, since VDP has not been reset
 		putch(12);
 	}
@@ -131,8 +134,8 @@ int main(void) {
 
 	scrcolours = 0;
 	active_console->get_mode_information();
-    while (scrcolours == 0) { }
-        uint8_t fg = active_console->get_fg_color_index();
+	while (scrcolours == 0) { }
+	uint8_t fg = active_console->get_fg_color_index();
 
 	if (fg < 128) {
 		vdpSupportsTextPalette = TRUE;
@@ -146,41 +149,40 @@ int main(void) {
 
 	mos_bootmsg();
 
-	mos_mount();									// Mount the SD card
+	mos_mount();	   // Mount the SD card
 
-	putch(7);										// Startup beep
-	editHistoryInit();								// Initialise the command history
+	putch(7);	   // Startup beep
+	editHistoryInit(); // Initialise the command history
 
-	// Load the autoexec.bat config file
-	//
-	#if enable_config == 1
+// Load the autoexec.bat config file
+//
+#if enable_config == 1
 	{
 		int err = mos_EXEC("autoexec.txt", cmd, sizeof cmd);	// Then load and run the config file
 		if (err > 0 && err != FR_NO_FILE) {
 			mos_error(err);
 		}
 	}
-	#endif
+#endif
 
 #ifdef FEAT_FRAMEBUFFER
 	{
-		int err = mos_EXEC("/mos/fbinit.bat", cmd, sizeof cmd);	// Then load and run the config file
+		int err = mos_EXEC("/mos/fbinit.bat", cmd, sizeof cmd); // Then load and run the config file
 		if (err > 0 && err != FR_NO_FILE) {
 			mos_error(err);
 		}
 	}
-#endif /* FEAT_FRAMEBUFFER */
+#endif									/* FEAT_FRAMEBUFFER */
 
 	// The main loop
 	//
-	while(1) {
-		if(mos_input(cmd, sizeof(cmd)) == 13) {
+	while (1) {
+		if (mos_input(cmd, sizeof(cmd)) == 13) {
 			int err = mos_exec(cmd, TRUE);
-			if(err > 0) {
+			if (err > 0) {
 				mos_error(err);
 			}
-		}
-		else {
+		} else {
 			printf("Escape\n\r");
 		}
 	}

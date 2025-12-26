@@ -3,7 +3,7 @@
  * Author:			Dean Belfield
  * Created:			18/09/2022
  * Last Updated:	31/03/2023
- * 
+ *
  * Modinfo:
  * 28/09/2022:		Added clear parameter to mos_EDITLINE
  * 20/02/2023:		Fixed mos_EDITLINE to handle the full CP-1252 character set
@@ -14,27 +14,27 @@
  * 31/03/2023:		Added timeout for VDP protocol
  */
 
-#include "ez80f92.h"
 #include "defines.h"
+#include "ez80f92.h"
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 
-#include "defines.h"
-#include "mos.h"
-#include "uart.h"
-#include "timer.h"
-#include "mos_editor.h"
-#include "umm_malloc.h"
-#include "keyboard_buffer.h"
 #include "console.h"
+#include "defines.h"
+#include "keyboard_buffer.h"
+#include "mos.h"
+#include "mos_editor.h"
+#include "timer.h"
+#include "uart.h"
+#include "umm_malloc.h"
 
-extern volatile BYTE vpd_protocol_flags;		// In globals.asm
-extern volatile BYTE keyascii;					// In globals.asm
-extern volatile BYTE keycode;					// In globals.asm
-extern volatile BYTE keydown;					// In globals.asm
-extern volatile BYTE keycount;					// In globals.asm
+extern volatile BYTE vpd_protocol_flags; // In globals.asm
+extern volatile BYTE keyascii;		 // In globals.asm
+extern volatile BYTE keycode;		 // In globals.asm
+extern volatile BYTE keydown;		 // In globals.asm
+extern volatile BYTE keycount;		 // In globals.asm
 
 extern BYTE history_no;
 extern BYTE history_size;
@@ -45,19 +45,19 @@ extern BYTE scrcols;
 
 // Storage for the command history
 //
-static char	* cmd_history[cmd_historyDepth];
+static char* cmd_history[cmd_historyDepth];
 
-char *hotkey_strings[12] = {}; 
+char* hotkey_strings[12] = {};
 
 // Move cursor left
 //
-void doLeftCursor() {
+void doLeftCursor()
+{
 	active_console->get_cursor_pos();
-	if(cursorX > 0) {
+	if (cursorX > 0) {
 		putch(0x08);
-	}
-	else {
-		while(cursorX < (scrcols - 1)) {
+	} else {
+		while (cursorX < (scrcols - 1)) {
 			putch(0x09);
 			cursorX++;
 		}
@@ -66,14 +66,14 @@ void doLeftCursor() {
 }
 
 // Move Cursor Right
-// 
-void doRightCursor() {
+//
+void doRightCursor()
+{
 	active_console->get_cursor_pos();
-	if(cursorX < (scrcols - 1)) {
+	if (cursorX < (scrcols - 1)) {
 		putch(0x09);
-	}
-	else {
-		while(cursorX > 0) {
+	} else {
+		while (cursorX > 0) {
 			putch(0x08);
 			cursorX--;
 		}
@@ -91,24 +91,25 @@ void doRightCursor() {
 // Returns:
 // - true if the character was inserted, otherwise false
 //
-BOOL insertCharacter(char *buffer, char c, int insertPos, int len, int limit) {
-	int	i;
+BOOL insertCharacter(char* buffer, char c, int insertPos, int len, int limit)
+{
+	int i;
 	int count = 0;
-	
-	if(len < limit) {
+
+	if (len < limit) {
 		putch(c);
-		for(i = len; i >= insertPos; i--) {
-			buffer[i+1] = buffer[i];
+		for (i = len; i >= insertPos; i--) {
+			buffer[i + 1] = buffer[i];
 		}
 		buffer[insertPos] = c;
-		for(i = insertPos + 1; i <= len; i++, count++) {
+		for (i = insertPos + 1; i <= len; i++, count++) {
 			putch(buffer[i]);
 		}
-		for(i = 0; i < count; i++) {
+		for (i = 0; i < count; i++) {
 			doLeftCursor();
 		}
 		return 1;
-	}	
+	}
 	return 0;
 }
 
@@ -120,27 +121,29 @@ BOOL insertCharacter(char *buffer, char c, int insertPos, int len, int limit) {
 // Returns:
 // - true if the character was deleted, otherwise false
 //
-BOOL deleteCharacter(char *buffer, int insertPos, int len) {
-	int	i;
+BOOL deleteCharacter(char* buffer, int insertPos, int len)
+{
+	int i;
 	int count = 0;
 	if (insertPos > 0) {
 		doLeftCursor();
-		for(i = insertPos - 1; i < len; i++, count++) {
-			BYTE b = buffer[i+1];
+		for (i = insertPos - 1; i < len; i++, count++) {
+			BYTE b = buffer[i + 1];
 			buffer[i] = b;
 			putch(b ? b : ' ');
 		}
-		for(i = 0; i < count; i++) {
+		for (i = 0; i < count; i++) {
 			doLeftCursor();
 		}
 		return 1;
-	}	
+	}
 	return 0;
 }
 
 // handle HOME
 //
-int gotoEditLineStart(int insertPos) {
+int gotoEditLineStart(int insertPos)
+{
 	while (insertPos > 0) {
 		doLeftCursor();
 		insertPos--;
@@ -150,7 +153,8 @@ int gotoEditLineStart(int insertPos) {
 
 // handle END
 //
-int gotoEditLineEnd(int insertPos, int len) {
+int gotoEditLineEnd(int insertPos, int len)
+{
 	while (insertPos < len) {
 		doRightCursor();
 		insertPos++;
@@ -160,7 +164,8 @@ int gotoEditLineEnd(int insertPos, int len) {
 
 // remove current edit line
 //
-void removeEditLine(char * buffer, int insertPos, int len) {
+void removeEditLine(char* buffer, int insertPos, int len)
+{
 	// goto start of line
 	insertPos = gotoEditLineStart(insertPos);
 	// set buffer to be spaces up to len
@@ -176,9 +181,10 @@ void removeEditLine(char * buffer, int insertPos, int len) {
 // Returns:
 // - 1 if the hotkey was handled, otherwise 0
 //
-BOOL handleHotkey(UINT8 fkey, char * buffer, int bufferLength, int insertPos, int len) {
+BOOL handleHotkey(UINT8 fkey, char* buffer, int bufferLength, int insertPos, int len)
+{
 	if (hotkey_strings[fkey] != NULL) {
-		char *wildcardPos = strstr(hotkey_strings[fkey], "%s");
+		char* wildcardPos = strstr(hotkey_strings[fkey], "%s");
 
 		if (wildcardPos == NULL) { // No wildcard in the hotkey string
 			removeEditLine(buffer, insertPos, len);
@@ -188,11 +194,11 @@ BOOL handleHotkey(UINT8 fkey, char * buffer, int bufferLength, int insertPos, in
 			UINT8 prefixLength = wildcardPos - hotkey_strings[fkey];
 			UINT8 replacementLength = strlen(buffer);
 			UINT8 suffixLength = strlen(wildcardPos + 2);
-			char *result;
+			char* result;
 
 			if (prefixLength + replacementLength + suffixLength + 1 >= bufferLength) {
 				// Exceeds max command length (256 chars)
-				putch(0x07); // Beep
+				putch(0x07);							  // Beep
 				return 0;
 			}
 
@@ -203,7 +209,7 @@ BOOL handleHotkey(UINT8 fkey, char * buffer, int bufferLength, int insertPos, in
 			}
 
 			strncpy(result, hotkey_strings[fkey], prefixLength); // Copy the portion preceding the wildcard to the buffer
-			result[prefixLength] = '\0'; // Terminate
+			result[prefixLength] = '\0';			     // Terminate
 
 			strcat(result, buffer);
 			strcat(result, wildcardPos + 2);
@@ -220,86 +226,84 @@ BOOL handleHotkey(UINT8 fkey, char * buffer, int bufferLength, int insertPos, in
 	return 0;
 }
 
-static void do_tab_complete(char *buffer, int *out_InsertPos, int *out_buflen)
+static void do_tab_complete(char* buffer, int* out_InsertPos, int* out_buflen)
 {
-	char *search_term = NULL;
-	char *path = NULL;
+	char* search_term = NULL;
+	char* path = NULL;
 
 	FRESULT fr;
 	DIR dj;
 	FILINFO fno;
-	t_mosCommand *cmd;
-	const char *searchTermStart;
-	const char *lastSpace = strrchr(buffer, ' ');
-	const char *lastSlash = strrchr(buffer, '/');
-	
-	if (lastSlash == NULL && lastSpace == NULL) { //Try commands first before fatfs completion
-		
-		search_term = (char*) umm_malloc(strlen(buffer) + 6);
+	t_mosCommand* cmd;
+	const char* searchTermStart;
+	const char* lastSpace = strrchr(buffer, ' ');
+	const char* lastSlash = strrchr(buffer, '/');
+
+	if (lastSlash == NULL && lastSpace == NULL) { // Try commands first before fatfs completion
+
+		search_term = (char*)umm_malloc(strlen(buffer) + 6);
 		if (!search_term) {
 			// umm_malloc failed, so no tab completion for us today
 			return;
 		}
-		
+
 		strcpy(search_term, buffer);
 		strcat(search_term, ".");
-		
+
 		cmd = mos_getCommand(search_term);
-		if (cmd != NULL) { //First try internal MOS commands
-			
+		if (cmd != NULL) { // First try internal MOS commands
+
 			printf("%s ", cmd->name + strlen(buffer));
 			strcat(buffer, cmd->name + strlen(buffer));
 			strcat(buffer, " ");
 			*out_buflen = strlen(buffer);
-			*out_InsertPos = strlen(buffer);										
-			umm_free(search_term);										
+			*out_InsertPos = strlen(buffer);
+			umm_free(search_term);
 			return;
-			
 		}
-		
+
 		strcpy(search_term, buffer);
 		strcat(search_term, "*.bin");
 		fr = f_findfirst(&dj, &fno, "/mos/", search_term);
-		if (fr == FR_OK && fno.fname[0]) { //Now try MOSlets
-			
+		if (fr == FR_OK && fno.fname[0]) { // Now try MOSlets
+
 			printf("%.*s ", strlen(fno.fname) - 4 - strlen(buffer), fno.fname + strlen(buffer));
 			strncat(buffer, fno.fname + strlen(buffer), strlen(fno.fname) - 4 - strlen(buffer));
 			strcat(buffer, " ");
 			*out_buflen = strlen(buffer);
-			*out_InsertPos = strlen(buffer);										
+			*out_InsertPos = strlen(buffer);
 			umm_free(search_term);
 			return;
-			
 		}
-		
-		//Try local .bin
+
+		// Try local .bin
 		fr = f_findfirst(&dj, &fno, "", search_term);
 		if ((fr == FR_OK && fno.fname[0])) {
 			printf("%.*s ", strlen(fno.fname) - 4 - strlen(buffer), fno.fname + strlen(buffer));
 			strncat(buffer, fno.fname + strlen(buffer), strlen(fno.fname) - 4 - strlen(buffer));
 			strcat(buffer, " ");
 			*out_buflen = strlen(buffer);
-			*out_InsertPos = strlen(buffer);										
+			*out_InsertPos = strlen(buffer);
 			umm_free(search_term);
-			return;									
-		}									
-		
-		//Otherwise try /bin/
+			return;
+		}
+
+		// Otherwise try /bin/
 		fr = f_findfirst(&dj, &fno, "/bin/", search_term);
 		if ((fr == FR_OK && fno.fname[0])) {
 			printf("%.*s ", strlen(fno.fname) - 4 - strlen(buffer), fno.fname + strlen(buffer));
 			strncat(buffer, fno.fname + strlen(buffer), strlen(fno.fname) - 4 - strlen(buffer));
 			strcat(buffer, " ");
 			*out_buflen = strlen(buffer);
-			*out_InsertPos = strlen(buffer);										
+			*out_InsertPos = strlen(buffer);
 			umm_free(search_term);
-			return;									
+			return;
 		}
 	}
-	
+
 	if (lastSlash != NULL) {
 		int pathLength = 1;
-											
+
 		if (lastSpace != NULL && lastSlash > lastSpace) {
 			pathLength = lastSlash - lastSpace; // Path starts after the last space and includes the slash
 		}
@@ -308,28 +312,28 @@ static void do_tab_complete(char *buffer, int *out_InsertPos, int *out_buflen)
 			pathLength = lastSlash - lastSpace;
 		}
 
-		path = (char*) umm_malloc(pathLength + 1); // +1 for null terminator
+		path = (char*)umm_malloc(pathLength + 1);   // +1 for null terminator
 		if (path == NULL) {
 			return;
 		}
-		strncpy(path, lastSpace + 1, pathLength); // Start after the last space
-		path[pathLength] = '\0'; // Null-terminate the string
+		strncpy(path, lastSpace + 1, pathLength);   // Start after the last space
+		path[pathLength] = '\0';		    // Null-terminate the string
 
 		// Determine the start of the search term
 		searchTermStart = lastSlash + 1;
 		if (lastSpace != NULL && lastSpace > lastSlash) {
 			searchTermStart = lastSpace + 1;
 		}
-		search_term = (char*) umm_malloc(strlen(searchTermStart) + 2); // +2 for '*' and null terminator
+		search_term = (char*)umm_malloc(strlen(searchTermStart) + 2); // +2 for '*' and null terminator
 	} else {
-		path = (char*) umm_malloc(1);
+		path = (char*)umm_malloc(1);
 		if (path == NULL) {
 			return;
 		}
-		path[0] = '\0'; // Path is empty (current dir, essentially).
+		path[0] = '\0';						      // Path is empty (current dir, essentially).
 
 		searchTermStart = lastSpace ? lastSpace + 1 : buffer;
-		search_term = (char*) umm_malloc(strlen(searchTermStart) + 2); // +2 for '*' and null terminator
+		search_term = (char*)umm_malloc(strlen(searchTermStart) + 2); // +2 for '*' and null terminator
 	}
 
 	if (search_term == NULL) {
@@ -337,15 +341,18 @@ static void do_tab_complete(char *buffer, int *out_InsertPos, int *out_buflen)
 		return;
 	}
 
-	strcpy(search_term, lastSpace && lastSlash > lastSpace ? lastSlash + 1 : lastSpace ? lastSpace + 1 : buffer);
+	strcpy(search_term, lastSpace && lastSlash > lastSpace ? lastSlash + 1 : lastSpace ? lastSpace + 1
+											   : buffer);
 	strcat(search_term, "*");
-	
-	//printf("Path:\"%s\" Pattern:\"%s\"\r\n", path, search_term);
+
+	// printf("Path:\"%s\" Pattern:\"%s\"\r\n", path, search_term);
 	fr = f_findfirst(&dj, &fno, path, search_term);
-	
+
 	if (fr == FR_OK && fno.fname[0]) {
-		if (fno.fattrib & AM_DIR) printf("%s/", fno.fname + strlen(search_term) - 1);
-		else printf("%s", fno.fname + strlen(search_term) - 1);
+		if (fno.fattrib & AM_DIR)
+			printf("%s/", fno.fname + strlen(search_term) - 1);
+		else
+			printf("%s", fno.fname + strlen(search_term) - 1);
 
 		strcat(buffer, fno.fname + strlen(search_term) - 1);
 		if (fno.fattrib & AM_DIR) strcat(buffer, "/");
@@ -537,7 +544,8 @@ UINT24 mos_EDITLINE(char* buffer, int bufferLength, UINT8 flags)
 	return keyr;					    // Finally return the keycode
 }
 
-void editHistoryInit() {
+void editHistoryInit()
+{
 	int i;
 	history_no = 0;
 	history_size = 0;
@@ -547,11 +555,12 @@ void editHistoryInit() {
 	}
 }
 
-void editHistoryPush(char *buffer) {
+void editHistoryPush(char* buffer)
+{
 	int len = strlen(buffer);
 
-	if (len > 0) {		// If there is data in the buffer
-		char * newEntry = NULL;
+	if (len > 0) { // If there is data in the buffer
+		char* newEntry = NULL;
 
 		// if the new entry is the same as the last entry, then don't save it
 		if (history_size > 0 && strcmp(buffer, cmd_history[history_size - 1]) == 0) {
@@ -578,7 +587,8 @@ void editHistoryPush(char *buffer) {
 	}
 }
 
-BOOL editHistoryUp(char *buffer, int insertPos, int len, int limit) {
+BOOL editHistoryUp(char* buffer, int insertPos, int len, int limit)
+{
 	int index = -1;
 	if (history_no > 0) {
 		index = history_no - 1;
@@ -590,7 +600,8 @@ BOOL editHistoryUp(char *buffer, int insertPos, int len, int limit) {
 	return editHistorySet(buffer, insertPos, len, limit, index);
 }
 
-BOOL editHistoryDown(char *buffer, int insertPos, int len, int limit) {
+BOOL editHistoryDown(char* buffer, int insertPos, int len, int limit)
+{
 	if (history_no < history_size) {
 		if (history_no == history_size - 1) {
 			// already at most recent entry - just leave an empty line
@@ -603,7 +614,8 @@ BOOL editHistoryDown(char *buffer, int insertPos, int len, int limit) {
 	return FALSE;
 }
 
-BOOL editHistorySet(char *buffer, int insertPos, int len, int limit, int index) {
+BOOL editHistorySet(char* buffer, int insertPos, int len, int limit, int index)
+{
 	if (index >= 0 && index < history_size) {
 		removeEditLine(buffer, insertPos, len);
 		if (strlen(cmd_history[index]) > limit) {
@@ -611,7 +623,7 @@ BOOL editHistorySet(char *buffer, int insertPos, int len, int limit, int index) 
 			strncpy(buffer, cmd_history[index], limit);
 			buffer[limit] = '\0';
 		} else {
-			strcpy(buffer, cmd_history[index]);			// Copy from the history to the buffer
+			strcpy(buffer, cmd_history[index]); // Copy from the history to the buffer
 		}
 		history_no = index;
 		return TRUE;

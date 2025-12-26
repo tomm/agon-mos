@@ -1,42 +1,45 @@
-#include <stdio.h>
-#include "defines.h"
-#include "mos.h"
 #include "console.h"
-#include "uart.h"
-#include "timer.h"
+#include "defines.h"
 #include "fbconsole.h"
+#include "mos.h"
+#include "timer.h"
+#include "uart.h"
+#include <stdio.h>
 
-extern volatile BYTE vpd_protocol_flags;		// In globals.asm
+extern volatile BYTE vpd_protocol_flags; // In globals.asm
 extern BYTE cursorX;
 extern BYTE cursorY;
 extern BYTE scrcols;
 extern BYTE scrrows;
-extern BYTE scrcolours, scrpixelIndex; // In globals.asm
+extern BYTE scrcolours, scrpixelIndex;	 // In globals.asm
 
 // Get the current cursor position from the VPD
 //
-void vdpGetCursorPos() {
-	vpd_protocol_flags &= 0xFE;					// Clear the semaphore flag
-	putch(23);									// Request the cursor position
+void vdpGetCursorPos()
+{
+	vpd_protocol_flags &= 0xFE; // Clear the semaphore flag
+	putch(23);		    // Request the cursor position
 	putch(0);
 	putch(VDP_cursor);
-	wait_VDP(0x01);								// Wait until the semaphore has been set, or a timeout happens
+	wait_VDP(0x01);		    // Wait until the semaphore has been set, or a timeout happens
 }
 
 // Get the current screen dimensions from the VDU
 //
-void vdpGetModeInformation() {
-	vpd_protocol_flags &= 0xEF;					// Clear the semaphore flag
+void vdpGetModeInformation()
+{
+	vpd_protocol_flags &= 0xEF; // Clear the semaphore flag
 	putch(23);
 	putch(0);
 	putch(VDP_mode);
-	wait_VDP(0x10);								// Wait until the semaphore has been set, or a timeout happens
+	wait_VDP(0x10);		    // Wait until the semaphore has been set, or a timeout happens
 }
 
 // Get palette entry
 //
-uint8_t vdpReadPalette(BYTE entry) {
-	vpd_protocol_flags &= 0xFB;					// Clear the semaphore flag
+uint8_t vdpReadPalette(BYTE entry)
+{
+	vpd_protocol_flags &= 0xFB; // Clear the semaphore flag
 	putch(23);
 	putch(0);
 	putch(VDP_palette);
@@ -45,27 +48,32 @@ uint8_t vdpReadPalette(BYTE entry) {
 	return scrpixelIndex;
 }
 
-uint8_t vdp_get_fg_color_index() {
+uint8_t vdp_get_fg_color_index()
+{
 	return vdpReadPalette(128);
 }
 
-uint8_t vdp_get_bg_color_index() {
+uint8_t vdp_get_bg_color_index()
+{
 	return vdpReadPalette(129);
 }
 
-void fbGetCursorPos() {
+void fbGetCursorPos()
+{
 	cursorX = fb_curs_x;
 	cursorY = fb_curs_y;
 }
 
-void fbGetModeInformation() {
+void fbGetModeInformation()
+{
 	scrcols = fbterm_width;
 	scrrows = fbterm_height;
 	scrcolours = 16;
 }
 
-uint8_t fb_get_fg_color_index() {
-	for (int i=0; i<16; i++) {
+uint8_t fb_get_fg_color_index()
+{
+	for (int i = 0; i < 16; i++) {
 		if (fb_vdp_palette[i] == fbterm_fg) {
 			return i;
 		}
@@ -73,8 +81,9 @@ uint8_t fb_get_fg_color_index() {
 	return 15;
 }
 
-uint8_t fb_get_bg_color_index() {
-	for (int i=0; i<16; i++) {
+uint8_t fb_get_bg_color_index()
+{
+	for (int i = 0; i < 16; i++) {
 		if (fb_vdp_palette[i] == fbterm_fg) {
 			return i;
 		}
@@ -99,18 +108,17 @@ struct console_driver_t fb_console = {
 	.get_bg_color_index = &fb_get_bg_color_index,
 };
 
-struct console_driver_t *active_console = &vdp_console;
+struct console_driver_t* active_console = &vdp_console;
 
 void console_enable_fb()
 {
 	active_console = &fb_console;
 	/* Call mos_api_setresetvector to set rst10 vector */
 	asm volatile(
-		"ld a,0x61 \r\n"
-		"ld e,0x10 \r\n"
-		"ld hl,_fbconsole_rst10_handler \r\n"
-		"rst.lil 8\r\n"
-	);
+	    "ld a,0x61 \r\n"
+	    "ld e,0x10 \r\n"
+	    "ld hl,_fbconsole_rst10_handler \r\n"
+	    "rst.lil 8\r\n");
 }
 
 void console_enable_vdp()
@@ -118,9 +126,8 @@ void console_enable_vdp()
 	active_console = &vdp_console;
 	/* Call mos_api_setresetvector to set rst10 vector */
 	asm volatile(
-		"ld a,0x61 \r\n"
-		"ld e,0x10 \r\n"
-		"ld hl,rst_10_handler \r\n"
-		"rst.lil 8\r\n"
-	);
+	    "ld a,0x61 \r\n"
+	    "ld e,0x10 \r\n"
+	    "ld hl,rst_10_handler \r\n"
+	    "rst.lil 8\r\n");
 }

@@ -15,6 +15,6 @@ extern void console_enable_vdp();
 
 extern struct console_driver_t vdp_console;
 extern struct console_driver_t fb_console;
-extern struct console_driver_t *active_console;
+extern struct console_driver_t* active_console;
 
 #endif /* CONSOLE_H */

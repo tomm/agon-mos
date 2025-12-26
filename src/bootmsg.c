@@ -1,17 +1,20 @@
-#include <stdio.h>
-#include <string.h>
 #include "uart.h"
 #include "version.h"
+#include <stdio.h>
+#include <string.h>
 
-extern volatile BYTE scrcolours, scrpixelIndex;  // In globals.asm
+extern volatile BYTE scrcolours, scrpixelIndex; // In globals.asm
 
-static uint8_t quickrand(void) {
+static uint8_t quickrand(void)
+{
 	uint8_t out;
-	asm volatile("ld a,r\n":"=%a"(out));
+	asm volatile("ld a,r\n"
+		     : "=%a"(out));
 	return out;
 }
 
-static void rainbow_msg(char* msg) {
+static void rainbow_msg(char* msg)
+{
 	BYTE i = quickrand() & (scrcolours - 1);
 	if (strcmp(msg, "Rainbow") != 0) {
 		printf("%s", msg);
@@ -29,20 +32,21 @@ static void rainbow_msg(char* msg) {
 	putch(15);
 }
 
-void mos_bootmsg(void) {
+void mos_bootmsg(void)
+{
 	printf("Agon ");
 	rainbow_msg(VERSION_VARIANT);
 	printf(" MOS %d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH);
 
-	#ifdef VERSION_IS_EXPERIMENTAL
-		printf(" (git-%s)", VERSION_GITREF);
-	#endif
+#ifdef VERSION_IS_EXPERIMENTAL
+	printf(" (git-%s)", VERSION_GITREF);
+#endif
 
-	// Show version subtitle, if we have one
-	#ifdef VERSION_SUBTITLE
-		printf(" ");
-		rainbow_msg(VERSION_SUBTITLE);
-	#endif
+// Show version subtitle, if we have one
+#ifdef VERSION_SUBTITLE
+	printf(" ");
+	rainbow_msg(VERSION_SUBTITLE);
+#endif
 
 	printf("\n\r\n\r");
 }

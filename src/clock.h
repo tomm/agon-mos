@@ -14,25 +14,25 @@
 
 #include "defines.h"
 
-#define EPOCH_YEAR	1980
+#define EPOCH_YEAR 1980
 
 // RTC time structure
 //
 typedef struct {
 	UINT16 year;
-	UINT8  month;
-	UINT8  day;
-	UINT8  dayOfWeek;
+	UINT8 month;
+	UINT8 day;
+	UINT8 dayOfWeek;
 	UINT16 dayOfYear;
-	UINT8  hour;
-	UINT8  minute;
-	UINT8  second;
+	UINT8 hour;
+	UINT8 minute;
+	UINT8 second;
 } vdp_time_t;
 
-void init_rtc();           				// In rtc.asm
+void init_rtc(); // In rtc.asm
 
 void rtc_update();
-void rtc_unpack(UINT8 * buffer, vdp_time_t * t);
-void rtc_formatDateTime(char * buffer, vdp_time_t * t);
+void rtc_unpack(UINT8* buffer, vdp_time_t* t);
+void rtc_formatDateTime(char* buffer, vdp_time_t* t);
 
-#endif /* RTC_H */
+#endif		 /* RTC_H */
