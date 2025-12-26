@@ -103,7 +103,6 @@ int		mos_cmdMOUNT(char *ptr);
 int		mos_cmdHELP(char *ptr);
 int		mos_cmdHOTKEY(char *ptr);
 int		mos_cmdMEM(char *ptr);
-int		mos_cmdECHO(char *ptr);
 int		mos_cmdPRINTF(char *ptr);
 int		mos_cmdFBMODE(char *ptr);
 int		mos_cmdMEMDUMP(char *ptr);
@@ -158,9 +157,6 @@ UINT8	fat_EOF(FIL * fp);
 
 #define HELP_DELETE			"Delete a file or folder (must be empty)\r\n"
 #define HELP_DELETE_ARGS	"[-f] <filename>"
-
-#define HELP_ECHO			"Echo sends a string to the VDU, after transformation\r\n"
-#define HELP_ECHO_ARGS		"<string>"
 
 #define HELP_EXEC			"Run a batch file containing MOS commands\r\n"
 #define HELP_EXEC_ARGS		"<filename>"

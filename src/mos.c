@@ -104,7 +104,7 @@ static t_mosCommand mosCommands[] = {
 	{ "DELETE",		&mos_cmdDEL,		HELP_DELETE_ARGS,	HELP_DELETE },
 	{ "DIR",		&mos_cmdDIR,		HELP_CAT_ARGS,		HELP_CAT },
 	{ "DISC",		&mos_cmdDISC,		NULL,		NULL },
-	{ "ECHO",		&mos_cmdECHO,		HELP_ECHO_ARGS,		HELP_ECHO },
+	{ "ECHO",		&mos_cmdPRINTF,		HELP_PRINTF_ARGS,		HELP_PRINTF },
 	{ "ERASE",		&mos_cmdDEL,		HELP_DELETE_ARGS,	HELP_DELETE },
 	{ "EXEC",		&mos_cmdEXEC,		HELP_EXEC_ARGS,		HELP_EXEC },
 	{ "FBMODE",		&mos_cmdFBMODE,		HELP_FBMODE_ARGS,       HELP_FBMODE },
@@ -499,117 +499,6 @@ int mos_cmdDIR(char * ptr) {
 		}
 	}
 	return mos_DIR(path, longListing);
-}
-
-// ECHO command
-//
-int mos_cmdECHO(char *ptr) {
-	int c;
-	char *p = mos_strtok_ptr;
-
-	while (*p) {
-		switch (*p) {
-			case '|': {
-				// interpret pipe-escaped characters
-				p++;
-
-				if (*p == 0) {
-					// no more characters, so this is an error
-					return MOS_BAD_STRING;
-				} else if (*p == '?') {
-					// prints character 127
-					putch(0x7F);
-					p++;
-				} else if (*p == '!') {
-					// prints next character with top bit set
-					p++;
-					if (*p == 0) {
-						// no more characters, so this is an error
-						return MOS_BAD_STRING;
-					}
-					putch(*p++ | 0x80);
-				} else if (*p >= 0x40 && *p < 0x7F) {
-					// characters from &40-7F (letters and some punctuation)
-					// are printed as just their bottom 5 bits
-					// (which Acorn documents as CTRL( ASCII(uppercase(char) – 64))
-					putch(*p & 0x1F);
-					p++;
-				} else {
-					// all other characters are passed thru
-					putch(*p);
-					p++;
-				}
-
-				break;
-			}
-
-			case '<': {
-				// possibly a number or variable
-				// so search for an end tag
-				char *end = p + 1;
-				while (*end && *end != '>') {
-					end++;
-				}
-				if (*end == '>' && end > p + 1) {
-					// we have one - so is this a number?
-					int number = 0;
-					int base = 10;
-					char *endptr = NULL;
-					char *start = p + 1;
-					p++;
-					*end = '\0';
-					// number can be decimal, &hex, or base_number
-					if (*p == '&') {
-						base = 16;
-						p++;
-					} else {
-						char *underscore = strchr(p, '_');
-						if (underscore != NULL && underscore > p) {
-							char *baseEnd;
-							*underscore = '\0';
-							base = strtol(p, &baseEnd, 10);
-							if (baseEnd != underscore) {
-								// we didn't use all chars before underscore, so invalid base
-								base = -1;
-							}
-							// Move p pointer to the number part
-							p = underscore + 1;
-							*underscore = '_';
-						}
-					}
-
-					if (base > 1 && base <= 36) {
-						number = strtol(p, &endptr, base);
-					}
-
-					if (endptr != end) {
-						// we didn't consume whole string, so it was not a valid number
-						// we therefore should interpret it as a variable
-						// TODO
-						#if DEBUG > 0
-						printf("variable: '%.*s'\n\r", end - p, p);
-						#endif
-					} else {
-						putch(number & 0xFF);
-					}
-					*end = '>';
-					p = end + 1;
-				} else {
-					// no end tag, so just print the character
-					putch(*p);
-					p++;
-				}
-				break;
-			}
-			default:
-				putch(*p);
-				p++;
-				break;
-		}
-	}
-
-	printf("\r\n");
-	return FR_OK;
 }
 
 // Assumes isxdigit(digit)
@@ -2506,14 +2395,15 @@ int mos_mount(void) {
 
 extern void hxload_vdp(void);
 
-int mos_cmdSIDELOAD(char *)
+int mos_cmdSIDELOAD(char *p)
 {
 	printf("Waiting for VDP data...\r\n");
 	hxload_vdp();
 	printf("Done\r\n");
+	return 0;
 }
 
-int mos_cmdFBMODE(char *)
+int mos_cmdFBMODE(char *p)
 {
 	char *value_str;
 	if (fb_driverversion() == 0) {
