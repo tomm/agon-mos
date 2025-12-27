@@ -59,7 +59,7 @@ _vblank_handler:
 			
 ; AGON UART0 Interrupt Handler
 ;
-_uart0_handler:		DI
+_uart0_handler:		
 			PUSH		AF
 			PUSH		BC
 			PUSH		DE
@@ -78,7 +78,6 @@ _uart0_handler:		DI
 ; AGON I2C Interrupt handler
 ;
 _i2c_handler:
-			DI
 			PUSH	AF
 			PUSH	HL
 			PUSH	DE

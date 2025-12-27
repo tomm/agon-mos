@@ -1,4 +1,5 @@
 		.assume adl=1
+		.global _init_fbterm
 		.global _start_fbterm
 		.global _stop_fbterm
 		.global _fbterm_width
@@ -19,7 +20,8 @@ FONT_HEIGHT: .equ 6
 
 		.bss
 
-_fb_mode:	.db 255 ; GPIO video disabled initially
+fbdata_start:
+_fb_mode:	.ds 1
 _fbterm_width:
 term_width:	.ds 1
 _fbterm_height:
@@ -27,19 +29,18 @@ term_height:	.ds 1
 _fbterm_fg:	.ds 1
 _fbterm_bg:	.ds 1
 _fb_curs_x:	.ds 1
-_fb_curs_y:		.ds 1
+_fb_curs_y:	.ds 1
 fb_curs_ptr:	.ds 3 	; pointer into screen memory of current cursor loc
 vdp_active_fn:	.ds 3
 vdp_fn_args:	.ds 1
 fbterm_flags:	.ds 1
 _fb_base: 	.ds 3
-cursor_mutex:	.db 1	; 1 when free, 0 when held
+cursor_mutex:	.ds 1	; 1 when free, 0 when held
+fbdata_end:
 
 FLAG_IS_CURSOR_VIS: .equ 1
 FLAG_DELAYED_SCROLL: .equ 2
 FLAG_LOGO_DISMISSED: .equ 4
-
-is_cursor_vis:	.ds 1
 
 		.text
 
@@ -80,6 +81,15 @@ pre_image_callback:
 		; Jump to vblank handler
 		jp __2nd_jump_table + 100
 
+; Init variables, but don't start video output
+_init_fbterm:
+		ld a,255
+		ld (_fb_mode),a
+		ld a,1
+		ld (cursor_mutex),a
+
+		ret
+
 _stop_fbterm:
 		ld a,4		; api_videostop
 		rst.lil 0x20
@@ -101,6 +111,10 @@ _start_fbterm:
 		; get videosetup
 		ld a,2
 		rst.lil 0x20
+
+		; Clear key event count to enable dismissing logo animation
+		xor a
+		ld (_keycount),a
 
 		; move framebuffer to desired location
 		ld hl,(ix+9)	; _fb_base
@@ -128,13 +142,10 @@ _start_fbterm:
 		; Hook fbconsole to rst10
 		call _console_enable_fb
 
-		; Clear key event count to enable dismissing logo animation
-		xor a
-		ld (_keycount),a
-
 		ld a,(fbterm_flags)
 		and FLAG_LOGO_DISMISSED
 		jr nz,1f
+
 		call do_splashmsg
 		call always_draw_trippy_logo
 	1:
@@ -832,7 +843,6 @@ always_draw_trippy_logo:
 		ld a,2
 		rst.lil 0x20
 		ld a,(iy+0) ; frame count
-		and 31
 		push af
 
 		call fb_get_modeinfo	; iy
@@ -879,8 +889,8 @@ always_draw_trippy_logo:
 		ret
 
 splashmsg_1:	.ascii "\x1e"
-		.ascii "     Agon Computer 512K\r\n\r\n"
-		.asciz "     eZ80 GPIO Video\r\n\r\n\r\n"
+		.ascii "      Agon Computer 512K\r\n\r\n"
+		.asciz "      Rainbow MOS\r\n\r\n\r\n"
 .balign 32
 rainbow_cols:	; Very important
 		.db 0b11100000

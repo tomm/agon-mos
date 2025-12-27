@@ -8,6 +8,9 @@
 
 section .text
 __init:
+		xor a
+		ld mb,a
+
 		ld a, 0xFF
 		out0 (PB_DDR), a         ; GPIO
 		out0 (PC_DDR), a         ;

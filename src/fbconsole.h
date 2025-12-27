@@ -18,6 +18,7 @@ struct __attribute__((packed)) fbmodeinfo_t {
 	uint8_t flags;
 };
 
+extern void init_fbterm(void);
 extern int start_fbterm(int mode, void* fb_base, void* fb_scanline_offsets);
 extern void stop_fbterm(void);
 extern uint8_t fb_driverversion(void);
