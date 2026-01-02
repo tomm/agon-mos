@@ -14,7 +14,7 @@
 #include <defines.h>
 
 // Set I2C clock and sampling frequency
-void I2C_setfrequency(UINT8 id)
+void I2C_setfrequency(uint8_t id)
 {
 	switch (id) {
 	case (I2C_SPEED_115200):
@@ -50,7 +50,7 @@ void I2C_handletimeout(void)
 // Open the I2C bus, register the driver interrupt
 // Parameters: None
 // Returns: None
-void mos_I2C_OPEN(UINT8 frequency)
+void mos_I2C_OPEN(uint8_t frequency)
 {
 	init_I2C();
 	I2C_setfrequency(frequency);
@@ -72,7 +72,7 @@ void mos_I2C_CLOSE(void)
 // - buffer: pointer to the first byte to write
 // Returns:
 // - 0 on success, or errorcode
-UINT8 mos_I2C_WRITE(UINT8 i2c_address, UINT8 size, char* buffer)
+uint8_t mos_I2C_WRITE(uint8_t i2c_address, uint8_t size, char* buffer)
 {
 
 	// send maximum of 32 bytes in a single I2C transaction
@@ -120,7 +120,7 @@ UINT8 mos_I2C_WRITE(UINT8 i2c_address, UINT8 size, char* buffer)
 // - buffer: pointer to the first byte to read
 // Returns:
 // - 0 on success, or errorcode
-UINT8 mos_I2C_READ(UINT8 i2c_address, UINT8 size, char* buffer)
+uint8_t mos_I2C_READ(uint8_t i2c_address, uint8_t size, char* buffer)
 {
 	if (size == 0) return 0;
 	if (i2c_address > 127) return RET_NORESPONSE;

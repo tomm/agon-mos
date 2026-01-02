@@ -17,13 +17,13 @@
 #include "defines.h"
 
 extern long SysClkFreq;
-extern volatile BYTE vpd_protocol_flags; // In globals.asm
+extern volatile uint8_t vpd_protocol_flags; // In globals.asm
 
 unsigned short init_timer0(int interval, int clkdiv, unsigned char ctrlbits);
 void enable_timer0(unsigned char enable);
 unsigned short get_timer0();
-BOOL wait_VDP(unsigned char mask);
+bool wait_VDP(unsigned char mask);
 
-void wait_timer0();			 // In misc.asm
+void wait_timer0();			    // In misc.asm
 
-#endif					 /* TIMER_H */
+#endif					    /* TIMER_H */

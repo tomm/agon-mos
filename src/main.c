@@ -50,7 +50,7 @@
 #include "uart.h"
 #include "umm_malloc.h"
 
-extern volatile BYTE scrcolours; // In globals.asm
+extern volatile uint8_t scrcolours; // In globals.asm
 
 extern void* set_vector(unsigned int vector, void (*handler)(void));
 
@@ -58,11 +58,11 @@ extern void vblank_handler(void);
 extern void uart0_handler(void);
 extern void i2c_handler(void);
 
-extern char hardReset;		 // 1 = hard cpu reset, 0 = soft reset
-extern volatile char keycode;	 // Keycode
-extern volatile char gp;	 // General poll variable
+extern char hardReset;		    // 1 = hard cpu reset, 0 = soft reset
+extern volatile char keycode;	    // Keycode
+extern volatile char gp;	    // General poll variable
 
-extern BOOL vdpSupportsTextPalette;
+extern bool vdpSupportsTextPalette;
 
 // Wait for the ESP32 to respond with a GP packet to signify it is ready
 // Parameters:
@@ -71,7 +71,7 @@ extern BOOL vdpSupportsTextPalette;
 // Returns:
 // - 1 if the function succeeded, otherwise 0
 //
-int wait_ESP32(UINT24 baudRate)
+int wait_ESP32(uint24_t baudRate)
 {
 	UART UART0;
 	int i, t;
@@ -140,7 +140,7 @@ int main(void)
 	uint8_t fg = active_console->get_fg_color_index();
 
 	if (fg < 128) {
-		vdpSupportsTextPalette = TRUE;
+		vdpSupportsTextPalette = true;
 	} else {
 		// VDP doesn't properly support text colour reading
 		// so we may have printed a duff character to screen
@@ -180,7 +180,7 @@ int main(void)
 	//
 	while (1) {
 		if (mos_input(cmd, sizeof(cmd)) == 13) {
-			int err = mos_exec(cmd, TRUE);
+			int err = mos_exec(cmd, true);
 			if (err > 0) {
 				mos_error(err);
 			}

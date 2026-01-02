@@ -19,24 +19,24 @@ extern "C" {
 
 typedef struct umm_heap_config {
     void *pheap;
-    UINT24 heap_size;
-    UINT16 numblocks;
+    uint24_t heap_size;
+    uint16_t numblocks;
 } umm_heap;
 
-extern void  umm_multi_init_heap(umm_heap *heap, void *ptr, UINT24 size);
+extern void  umm_multi_init_heap(umm_heap *heap, void *ptr, uint24_t size);
 
-extern void *umm_multi_malloc(umm_heap *heap, UINT24 size);
-extern void *umm_multi_calloc(umm_heap *heap, UINT24 num, UINT24 size);
-extern void *umm_multi_realloc(umm_heap *heap, void *ptr, UINT24 size);
+extern void *umm_multi_malloc(umm_heap *heap, uint24_t size);
+extern void *umm_multi_calloc(umm_heap *heap, uint24_t num, uint24_t size);
+extern void *umm_multi_realloc(umm_heap *heap, void *ptr, uint24_t size);
 extern void  umm_multi_free(umm_heap *heap, void *ptr);
 
 /* ------------------------------------------------------------------------ */
 
-extern void  umm_init_heap(void *ptr, UINT24 size);
+extern void  umm_init_heap(void *ptr, uint24_t size);
 
-extern void *umm_malloc(UINT24 size);
-extern void *umm_calloc(UINT24 num, UINT24 size);
-extern void *umm_realloc(void *ptr, UINT24 size);
+extern void *umm_malloc(uint24_t size);
+extern void *umm_calloc(uint24_t num, uint24_t size);
+extern void *umm_realloc(void *ptr, uint24_t size);
 extern void  umm_free(void *ptr);
 
 /* ------------------------------------------------------------------------ */

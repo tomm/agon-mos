@@ -19,20 +19,20 @@
 // RTC time structure
 //
 typedef struct {
-	UINT16 year;
-	UINT8 month;
-	UINT8 day;
-	UINT8 dayOfWeek;
-	UINT16 dayOfYear;
-	UINT8 hour;
-	UINT8 minute;
-	UINT8 second;
+	uint16_t year;
+	uint8_t month;
+	uint8_t day;
+	uint8_t dayOfWeek;
+	uint16_t dayOfYear;
+	uint8_t hour;
+	uint8_t minute;
+	uint8_t second;
 } vdp_time_t;
 
 void init_rtc(); // In rtc.asm
 
 void rtc_update();
-void rtc_unpack(UINT8* buffer, vdp_time_t* t);
+void rtc_unpack(uint8_t* buffer, vdp_time_t* t);
 void rtc_formatDateTime(char* buffer, vdp_time_t* t);
 
 #endif		 /* RTC_H */

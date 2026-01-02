@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-extern volatile BYTE scrcolours, scrpixelIndex; // In globals.asm
+extern volatile uint8_t scrcolours, scrpixelIndex; // In globals.asm
 
 static uint8_t quickrand(void)
 {
@@ -15,7 +15,7 @@ static uint8_t quickrand(void)
 
 static void rainbow_msg(char* msg)
 {
-	BYTE i = quickrand() & (scrcolours - 1);
+	uint8_t i = quickrand() & (scrcolours - 1);
 	if (strcmp(msg, "Rainbow") != 0) {
 		printf("%s", msg);
 		return;

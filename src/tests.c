@@ -22,7 +22,7 @@ static void malloc_grind_fill(struct mg_item_t* item)
 	}
 }
 
-static BOOL malloc_grind_validate(struct mg_item_t* item)
+static bool malloc_grind_validate(struct mg_item_t* item)
 {
 	int i;
 	for (i = 0; i < item->num; i++) {
@@ -54,7 +54,7 @@ static uint24_t rand_()
 static void malloc_grind()
 {
 	int iter, num, idx;
-	BOOL status = 1;
+	bool status = 1;
 	struct mg_item_t* items = umm_malloc(sizeof(struct mg_item_t) * MG_MAX_ITEMS);
 
 	if (items == NULL) {

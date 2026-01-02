@@ -6,12 +6,12 @@
 #include "uart.h"
 #include <stdio.h>
 
-extern volatile BYTE vpd_protocol_flags; // In globals.asm
-extern BYTE cursorX;
-extern BYTE cursorY;
-extern BYTE scrcols;
-extern BYTE scrrows;
-extern BYTE scrcolours, scrpixelIndex;	 // In globals.asm
+extern volatile uint8_t vpd_protocol_flags; // In globals.asm
+extern uint8_t cursorX;
+extern uint8_t cursorY;
+extern uint8_t scrcols;
+extern uint8_t scrrows;
+extern uint8_t scrcolours, scrpixelIndex;   // In globals.asm
 
 // Get the current cursor position from the VPD
 //
@@ -37,7 +37,7 @@ void vdpGetModeInformation()
 
 // Get palette entry
 //
-uint8_t vdpReadPalette(BYTE entry)
+uint8_t vdpReadPalette(uint8_t entry)
 {
 	vpd_protocol_flags &= 0xFB; // Clear the semaphore flag
 	putch(23);

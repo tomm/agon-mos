@@ -241,12 +241,12 @@ UMM_HEAP_INFO;
 
 extern UMM_HEAP_INFO ummHeapInfo;
 
-extern void *umm_multi_info(struct umm_heap_config *heap, void *ptr, BOOL force);
+extern void *umm_multi_info(struct umm_heap_config *heap, void *ptr, bool force);
 extern size_t umm_multi_free_heap_size(struct umm_heap_config *heap);
 extern size_t umm_multi_max_free_block_size(struct umm_heap_config *heap);
 extern int umm_multi_usage_metric(struct umm_heap_config *heap);
 extern int umm_multi_fragmentation_metric(struct umm_heap_config *heap);
-extern void *umm_info(void *ptr, BOOL force);
+extern void *umm_info(void *ptr, bool force);
 extern size_t umm_free_heap_size(void);
 extern size_t umm_max_free_block_size(void);
 extern int umm_usage_metric(void);
@@ -322,8 +322,8 @@ extern int umm_max_critical_depth;
  */
 
 #ifdef UMM_INTEGRITY_CHECK
-extern BOOL umm_multi_integrity_check(struct umm_heap_config *heap);
-extern BOOL umm_integrity_check(void);
+extern bool umm_multi_integrity_check(struct umm_heap_config *heap);
+extern bool umm_integrity_check(void);
 #define INTEGRITY_CHECK() umm_integrity_check()
 extern void umm_corruption(void);
 #define UMM_HEAP_CORRUPTION_CB() printf("Heap Corruption!")
@@ -367,13 +367,13 @@ extern void *umm_multi_poison_malloc(struct umm_heap_config *heap, size_t size);
 extern void *umm_multi_poison_calloc(struct umm_heap_config *heap, size_t num, size_t size);
 extern void *umm_multi_poison_realloc(struct umm_heap_config *heap, void *ptr, size_t size);
 extern void  umm_multi_poison_free(struct umm_heap_config *heap, void *ptr);
-extern BOOL  umm_multi_poison_check(struct umm_heap_config *heap);
+extern bool  umm_multi_poison_check(struct umm_heap_config *heap);
 
 extern void *umm_poison_malloc(size_t size);
 extern void *umm_poison_calloc(size_t num, size_t size);
 extern void *umm_poison_realloc(void *ptr, size_t size);
 extern void  umm_poison_free(void *ptr);
-extern BOOL  umm_poison_check(void);
+extern bool  umm_poison_check(void);
 
   #define POISON_CHECK() umm_poison_check()
 #else

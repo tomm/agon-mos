@@ -19,7 +19,7 @@
  * 13/11/2022:		Added mos_cmp
  * 21/11/2022:		Added support for passing params to executables & ADL mode
  * 14/02/2023:		Added mos_cmdVDU
- * 20/02/2023:		Function mos_getkey now returns a BYTE
+ * 20/02/2023:		Function mos_getkey now returns a uint8_t
  * 09/03/2023:		Added mos_cmdTIME, mos_cmdCREDITS, mos_DIR now accepts a path
  * 14/03/2023:		Added mos_cmdCOPY and mos_COPY
  * 15/03/2023:		Added mos_GETRTC, mos_SETRTC
@@ -46,7 +46,7 @@ typedef struct {
 } t_mosCommand;
 
 typedef struct {
-	UINT8 free;
+	uint8_t free;
 	FIL fileObject;
 } t_mosFileObject;
 
@@ -65,20 +65,20 @@ typedef enum {
 } MOSRESULT;
 
 void mos_error(int error);
-BYTE mos_getkey(void);
-UINT24 mos_input(char* buffer, int bufferLength);
+uint8_t mos_getkey(void);
+uint24_t mos_input(char* buffer, int bufferLength);
 t_mosCommand* mos_getCommand(char* ptr);
-BOOL mos_cmp(const char* p1, const char* p2);
+bool mos_cmp(const char* p1, const char* p2);
 char* mos_trim(char* s);
 char* mos_strtok(char* s1, char* s2);
 char* mos_strtok_r(char* s1, const char* s2, char** ptr);
-int mos_exec(char* buffer, BOOL in_mos);
-UINT8 mos_execMode(UINT8* ptr);
+int mos_exec(char* buffer, bool in_mos);
+uint8_t mos_execMode(uint8_t* ptr);
 
 int mos_mount(void);
 
-BOOL mos_parseNumber(char* ptr, UINT24* p_Value);
-BOOL mos_parseString(char* ptr, char** p_Value);
+bool mos_parseNumber(char* ptr, uint24_t* p_Value);
+bool mos_parseString(char* ptr, char** p_Value);
 
 int mos_cmdDIR(char* ptr);
 int mos_cmdDISC(char* ptr);
@@ -107,41 +107,41 @@ int mos_cmdPRINTF(char* ptr);
 int mos_cmdFBMODE(char* ptr);
 int mos_cmdMEMDUMP(char* ptr);
 
-UINT24 mos_LOAD(char* filename, UINT24 address, UINT24 size);
-UINT24 mos_SAVE(char* filename, UINT24 address, UINT24 size);
-UINT24 mos_TYPE(char* filename);
-UINT24 mos_CD(char* path);
-UINT24 mos_DIR_API(char* path);
-UINT24 mos_DIR(char* path, BOOL longListing);
-UINT24 mos_DEL(char* filename);
-UINT24 mos_REN_API(char* srcPath, char* dstPath);
-UINT24 mos_REN(char* srcPath, char* dstPath, BOOL verbose);
-UINT24 mos_COPY_API(char* srcPath, char* dstPath);
-UINT24 mos_COPY(char* srcPath, char* dstPath, BOOL verbose);
-UINT24 mos_MKDIR(char* filename);
-UINT24 mos_EXEC(char* filename, char* buffer, UINT24 size);
-UINT24 mos_FBMODE(int req_mode);
+uint24_t mos_LOAD(char* filename, uint24_t address, uint24_t size);
+uint24_t mos_SAVE(char* filename, uint24_t address, uint24_t size);
+uint24_t mos_TYPE(char* filename);
+uint24_t mos_CD(char* path);
+uint24_t mos_DIR_API(char* path);
+uint24_t mos_DIR(char* path, bool longListing);
+uint24_t mos_DEL(char* filename);
+uint24_t mos_REN_API(char* srcPath, char* dstPath);
+uint24_t mos_REN(char* srcPath, char* dstPath, bool verbose);
+uint24_t mos_COPY_API(char* srcPath, char* dstPath);
+uint24_t mos_COPY(char* srcPath, char* dstPath, bool verbose);
+uint24_t mos_MKDIR(char* filename);
+uint24_t mos_EXEC(char* filename, char* buffer, uint24_t size);
+uint24_t mos_FBMODE(int req_mode);
 
-UINT24 mos_FOPEN(char* filename, UINT8 mode);
-UINT24 mos_FCLOSE(UINT8 fh);
-UINT24 mos_FGETC(UINT8 fh);
-void mos_FPUTC(UINT8 fh, char c);
-UINT24 mos_FREAD(UINT8 fh, UINT24 buffer, UINT24 btr);
-UINT24 mos_FWRITE(UINT8 fh, UINT24 buffer, UINT24 btw);
-UINT8 mos_FLSEEK(UINT8 fh, UINT32 offset);
-UINT8 mos_FEOF(UINT8 fh);
+uint24_t mos_FOPEN(char* filename, uint8_t mode);
+uint24_t mos_FCLOSE(uint8_t fh);
+uint24_t mos_FGETC(uint8_t fh);
+void mos_FPUTC(uint8_t fh, char c);
+uint24_t mos_FREAD(uint8_t fh, uint24_t buffer, uint24_t btr);
+uint24_t mos_FWRITE(uint8_t fh, uint24_t buffer, uint24_t btw);
+uint8_t mos_FLSEEK(uint8_t fh, uint32_t offset);
+uint8_t mos_FEOF(uint8_t fh);
 
-void mos_GETERROR(UINT8 errno, UINT24 address, UINT24 size);
-UINT24 mos_OSCLI(char* cmd);
-UINT8 mos_GETRTC(UINT24 address);
-void mos_SETRTC(UINT24 address);
-UINT24 mos_SETINTVECTOR(UINT8 vector, UINT24 address);
-UINT24 mos_GETFIL(UINT8 fh);
+void mos_GETERROR(uint8_t errno, uint24_t address, uint24_t size);
+uint24_t mos_OSCLI(char* cmd);
+uint8_t mos_GETRTC(uint24_t address);
+void mos_SETRTC(uint24_t address);
+uint24_t mos_SETINTVECTOR(uint8_t vector, uint24_t address);
+uint24_t mos_GETFIL(uint8_t fh);
 
 extern TCHAR cwd[256];
-extern BOOL sdcardDelay;
+extern bool sdcardDelay;
 
-UINT8 fat_EOF(FIL* fp);
+uint8_t fat_EOF(FIL* fp);
 
 #define HELP_CAT "Directory listing of the current directory\r\n"
 #define HELP_CAT_ARGS "[-l] <path>"

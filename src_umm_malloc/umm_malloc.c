@@ -49,8 +49,8 @@
 /* ------------------------------------------------------------------------- */
 
 typedef struct umm_ptr_t {
-    UINT16 next;
-    UINT16 prev;
+    uint16_t next;
+    uint16_t prev;
 } umm_ptr;
 
 typedef struct umm_block_t {
@@ -59,12 +59,12 @@ typedef struct umm_block_t {
     } header;
     union {
         umm_ptr free;
-        UINT8 data[UMM_BLOCK_BODY_SIZE - sizeof(struct umm_ptr_t)];
+        uint8_t data[UMM_BLOCK_BODY_SIZE - sizeof(struct umm_ptr_t)];
     } body;
 } umm_block;
 
-#define UMM_FREELIST_MASK ((UINT16)(0x8000))
-#define UMM_BLOCKNO_MASK  ((UINT16)(0x7FFF))
+#define UMM_FREELIST_MASK ((uint16_t)(0x8000))
+#define UMM_BLOCKNO_MASK  ((uint16_t)(0x7FFF))
 
 /* ------------------------------------------------------------------------- */
 
@@ -93,9 +93,9 @@ typedef struct umm_block_t {
 
 /* ------------------------------------------------------------------------ */
 
-static UINT16 umm_blocks(UINT24 size) {
-	UINT24 blocks;
-	UINT24 bodysize;
+static uint16_t umm_blocks(uint24_t size) {
+	uint24_t blocks;
+	uint24_t bodysize;
 	
     /*
      * The calculation of the block size is not too difficult, but there are
@@ -121,7 +121,7 @@ static UINT16 umm_blocks(UINT24 size) {
      * If the requested size is greater that 32677-2 blocks (max block index
      * minus the overhead of the top and bottom bookkeeping blocks) then we
      * will return an incorrectly truncated value when the result is cast to
-     * a UINT16.
+     * a uint16_t.
      */
 
 	bodysize = UMM_BLOCK_BODY_SIZE - sizeof(struct umm_ptr_t);
@@ -144,13 +144,13 @@ static UINT16 umm_blocks(UINT24 size) {
 
 	//size -= sizeof(UMM_BLOCK_BODY_SIZE - sizeof(struct umm_ptr_t));
 	size -= bodysize;
-    /* NOTE WELL that we take advantage of the fact that INT16_MAX is the
+    /* NOTE WELL that we take advantage of the fact that int16_t_MAX is the
      * number of blocks that we can index in 15 bits :-)
      *
      * The below expression looks wierd, but it's right. Assuming body
      * size of 4 bytes and a block size of 8 bytes:
      *
-     * BYTES (BYTES-BODY) (BYTES-BODY-1)/BLOCKSIZE BLOCKS
+     * uint8_tS (uint8_tS-BODY) (uint8_tS-BODY-1)/BLOCKSIZE BLOCKS
      *     1        n/a                        n/a      1
      *     5          1                          0      2
      *    12          8                          0      2
@@ -163,7 +163,7 @@ static UINT16 umm_blocks(UINT24 size) {
         blocks = 32767;
     }
 
-    return (UINT16)blocks;
+    return (uint16_t)blocks;
 }
 
 /* ------------------------------------------------------------------------ */
@@ -176,9 +176,9 @@ static UINT16 umm_blocks(UINT24 size) {
  * Note that free pointers are NOT modified by this function.
  */
 static void umm_split_block(umm_heap *heap,
-    UINT16 c,
-    UINT16 blocks,
-    UINT16 new_freemask) {
+    uint16_t c,
+    uint16_t blocks,
+    uint16_t new_freemask) {
 
     UMM_NBLOCK(c + blocks) = (UMM_NBLOCK(c) & UMM_BLOCKNO_MASK) | new_freemask;
     UMM_PBLOCK(c + blocks) = c;
@@ -189,7 +189,7 @@ static void umm_split_block(umm_heap *heap,
 
 /* ------------------------------------------------------------------------ */
 
-static void umm_disconnect_from_free_list(umm_heap *heap, UINT16 c) {
+static void umm_disconnect_from_free_list(umm_heap *heap, uint16_t c) {
     /* Disconnect this block from the FREE list */
 
     UMM_NFREE(UMM_PFREE(c)) = UMM_NFREE(c);
@@ -206,7 +206,7 @@ static void umm_disconnect_from_free_list(umm_heap *heap, UINT16 c) {
  * next block is free.
  */
 
-static void umm_assimilate_up(umm_heap *heap, UINT16 c) {
+static void umm_assimilate_up(umm_heap *heap, uint16_t c) {
 
     if (UMM_NBLOCK(UMM_NBLOCK(c)) & UMM_FREELIST_MASK) {
 
@@ -236,7 +236,7 @@ static void umm_assimilate_up(umm_heap *heap, UINT16 c) {
  * up before assimilating down.
  */
 
-static UINT16 umm_assimilate_down(umm_heap *heap, UINT16 c, UINT16 freemask) {
+static uint16_t umm_assimilate_down(umm_heap *heap, uint16_t c, uint16_t freemask) {
 
     // We are going to assimilate down to the previous block because
     // it was free, so remove it from the fragmentation metric
@@ -261,7 +261,7 @@ static UINT16 umm_assimilate_down(umm_heap *heap, UINT16 c, UINT16 freemask) {
 
 /* ------------------------------------------------------------------------- */
 
-void umm_multi_init_heap(umm_heap *heap, void *ptr, UINT24 size) {
+void umm_multi_init_heap(umm_heap *heap, void *ptr, uint24_t size) {
     /* init heap pointer and size, and memset it to 0 */
     heap->pheap = ptr;
     UMM_HEAPSIZE = size;
@@ -320,7 +320,7 @@ void umm_multi_init_heap(umm_heap *heap, void *ptr, UINT24 size) {
 
 static void umm_free_core(umm_heap *heap, void *ptr) {
 
-    UINT16 c;
+    uint16_t c;
 
     /*
      * FIXME: At some point it might be a good idea to add a check to make sure
@@ -333,7 +333,7 @@ static void umm_free_core(umm_heap *heap, void *ptr) {
 
     /* Figure out which block we're in. Note the use of truncated division... */
 
-    c = (((UINT8 *)ptr) - (UINT8 *)(&(UMM_HEAP[0]))) / UMM_BLOCKSIZE;
+    c = (((uint8_t *)ptr) - (uint8_t *)(&(UMM_HEAP[0]))) / UMM_BLOCKSIZE;
 
     //DBGLOG_DEBUG("Freeing block %6i\n", c);
 
@@ -384,7 +384,7 @@ void umm_multi_free(umm_heap *heap, void *ptr) {
     /* If we're being asked to free an out of range pointer - do nothing */
     /* TODO: remove the check for NULL pointer later */
 
-    if ((ptr < heap->pheap) || ((UINT24)ptr >= (UINT24)heap->pheap + heap->heap_size)) {
+    if ((ptr < heap->pheap) || ((uint24_t)ptr >= (uint24_t)heap->pheap + heap->heap_size)) {
         //DBGLOG_DEBUG("free an out of range pointer -> do nothing\n");
 
         return;
@@ -404,14 +404,14 @@ void umm_multi_free(umm_heap *heap, void *ptr) {
  * UMM_CRITICAL_ENTRY(id) and UMM_CRITICAL_EXIT(id).
  */
 
-static void *umm_malloc_core(umm_heap *heap, UINT24 size) {
-    UINT16 blocks;
-    UINT16 blockSize = 0;
+static void *umm_malloc_core(umm_heap *heap, uint24_t size) {
+    uint16_t blocks;
+    uint16_t blockSize = 0;
 
-    UINT16 bestSize;
-    UINT16 bestBlock;
+    uint16_t bestSize;
+    uint16_t bestBlock;
 
-    UINT16 cf;
+    uint16_t cf;
 
     blocks = umm_blocks(size);
 
@@ -515,7 +515,7 @@ static void *umm_malloc_core(umm_heap *heap, UINT24 size) {
 
 /* ------------------------------------------------------------------------ */
 
-void *umm_multi_malloc(umm_heap *heap, UINT24 size) {
+void *umm_multi_malloc(umm_heap *heap, uint24_t size) {
 	void *ptr;
 	
     UMM_CRITICAL_DECL(id_malloc);
@@ -550,16 +550,16 @@ void *umm_multi_malloc(umm_heap *heap, UINT24 size) {
 
 /* ------------------------------------------------------------------------ */
 
-void *umm_multi_realloc(umm_heap *heap, void *ptr, UINT24 size) {
+void *umm_multi_realloc(umm_heap *heap, void *ptr, uint24_t size) {
 	void *oldptr;
-    UINT16 blocks;
-    UINT16 blockSize;
-    UINT16 prevBlockSize = 0;
-    UINT16 nextBlockSize = 0;
+    uint16_t blocks;
+    uint16_t blockSize;
+    uint16_t prevBlockSize = 0;
+    uint16_t nextBlockSize = 0;
 
-    UINT16 c;
+    uint16_t c;
 
-    UINT24 curSize;
+    uint24_t curSize;
 
     UMM_CRITICAL_DECL(id_realloc);
     UMM_CHECK_INITIALIZED();
@@ -605,7 +605,7 @@ void *umm_multi_realloc(umm_heap *heap, void *ptr, UINT24 size) {
 
     /* Figure out which block we're in. Note the use of truncated division... */
 
-    c = (((UINT8 *)ptr) - (UINT8 *)(&(UMM_HEAP[0]))) / UMM_BLOCKSIZE;
+    c = (((uint8_t *)ptr) - (uint8_t *)(&(UMM_HEAP[0]))) / UMM_BLOCKSIZE;
 
     /* Figure out how big this block is ... the free bit is not set :-) */
 
@@ -740,13 +740,13 @@ void *umm_multi_realloc(umm_heap *heap, void *ptr, UINT24 size) {
 
 /* ------------------------------------------------------------------------ */
 
-void *umm_multi_calloc(umm_heap *heap, UINT24 num, UINT24 item_size) {
+void *umm_multi_calloc(umm_heap *heap, uint24_t num, uint24_t item_size) {
     void *ret;
 
-    ret = umm_multi_malloc(heap, (UINT24)(item_size * num));
+    ret = umm_multi_malloc(heap, (uint24_t)(item_size * num));
 
     if (ret) {
-        memset(ret, 0x00, (UINT24)(item_size * num));
+        memset(ret, 0x00, (uint24_t)(item_size * num));
     }
 
     return ret;
@@ -758,19 +758,19 @@ void *umm_multi_calloc(umm_heap *heap, UINT24 num, UINT24 item_size) {
 
 struct umm_heap_config umm_heap_current; // The global heap for single-heap use
 
-void umm_init_heap(void *ptr, UINT24 size){
+void umm_init_heap(void *ptr, uint24_t size){
     umm_multi_init_heap(&umm_heap_current, ptr, size);
 }
 
-void *umm_malloc(UINT24 size){
+void *umm_malloc(uint24_t size){
     return umm_multi_malloc(&umm_heap_current, size);
 }
 
-void *umm_calloc(UINT24 num, UINT24 size){
+void *umm_calloc(uint24_t num, uint24_t size){
     return umm_multi_calloc(&umm_heap_current, num, size);
 }
 
-void *umm_realloc(void *ptr, UINT24 size){
+void *umm_realloc(void *ptr, uint24_t size){
     return umm_multi_realloc(&umm_heap_current, ptr, size);
 }
 

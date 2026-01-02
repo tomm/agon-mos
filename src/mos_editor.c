@@ -30,18 +30,18 @@
 #include "uart.h"
 #include "umm_malloc.h"
 
-extern volatile BYTE vpd_protocol_flags; // In globals.asm
-extern volatile BYTE keyascii;		 // In globals.asm
-extern volatile BYTE keycode;		 // In globals.asm
-extern volatile BYTE keydown;		 // In globals.asm
-extern volatile BYTE keycount;		 // In globals.asm
+extern volatile uint8_t vpd_protocol_flags; // In globals.asm
+extern volatile uint8_t keyascii;	    // In globals.asm
+extern volatile uint8_t keycode;	    // In globals.asm
+extern volatile uint8_t keydown;	    // In globals.asm
+extern volatile uint8_t keycount;	    // In globals.asm
 
-extern BYTE history_no;
-extern BYTE history_size;
+extern uint8_t history_no;
+extern uint8_t history_size;
 
-extern BYTE cursorX;
-extern BYTE cursorY;
-extern BYTE scrcols;
+extern uint8_t cursorX;
+extern uint8_t cursorY;
+extern uint8_t scrcols;
 
 // Storage for the command history
 //
@@ -91,7 +91,7 @@ void doRightCursor()
 // Returns:
 // - true if the character was inserted, otherwise false
 //
-BOOL insertCharacter(char* buffer, char c, int insertPos, int len, int limit)
+bool insertCharacter(char* buffer, char c, int insertPos, int len, int limit)
 {
 	int i;
 	int count = 0;
@@ -121,14 +121,14 @@ BOOL insertCharacter(char* buffer, char c, int insertPos, int len, int limit)
 // Returns:
 // - true if the character was deleted, otherwise false
 //
-BOOL deleteCharacter(char* buffer, int insertPos, int len)
+bool deleteCharacter(char* buffer, int insertPos, int len)
 {
 	int i;
 	int count = 0;
 	if (insertPos > 0) {
 		doLeftCursor();
 		for (i = insertPos - 1; i < len; i++, count++) {
-			BYTE b = buffer[i + 1];
+			uint8_t b = buffer[i + 1];
 			buffer[i] = b;
 			putch(b ? b : ' ');
 		}
@@ -181,7 +181,7 @@ void removeEditLine(char* buffer, int insertPos, int len)
 // Returns:
 // - 1 if the hotkey was handled, otherwise 0
 //
-BOOL handleHotkey(UINT8 fkey, char* buffer, int bufferLength, int insertPos, int len)
+bool handleHotkey(uint8_t fkey, char* buffer, int bufferLength, int insertPos, int len)
 {
 	if (hotkey_strings[fkey] != NULL) {
 		char* wildcardPos = strstr(hotkey_strings[fkey], "%s");
@@ -191,9 +191,9 @@ BOOL handleHotkey(UINT8 fkey, char* buffer, int bufferLength, int insertPos, int
 			strcpy(buffer, hotkey_strings[fkey]);
 			printf("%s", buffer);
 		} else {
-			UINT8 prefixLength = wildcardPos - hotkey_strings[fkey];
-			UINT8 replacementLength = strlen(buffer);
-			UINT8 suffixLength = strlen(wildcardPos + 2);
+			uint8_t prefixLength = wildcardPos - hotkey_strings[fkey];
+			uint8_t replacementLength = strlen(buffer);
+			uint8_t suffixLength = strlen(wildcardPos + 2);
 			char* result;
 
 			if (prefixLength + replacementLength + suffixLength + 1 >= bufferLength) {
@@ -374,14 +374,14 @@ static void do_tab_complete(char* buffer, int* out_InsertPos, int* out_buflen)
 // Returns:
 // - The exit key pressed (ESC or CR)
 //
-UINT24 mos_EDITLINE(char* buffer, int bufferLength, UINT8 flags)
+uint24_t mos_EDITLINE(char* buffer, int bufferLength, uint8_t flags)
 {
-	BOOL clear = flags & 0x01;		// Clear the buffer on entry
-	BOOL enableTab = flags & 0x02;		// Enable tab completion (default off)
-	BOOL enableHotkeys = !(flags & 0x04);	// Enable hotkeys (default on)
-	BOOL enableHistory = !(flags & 0x08);	// Enable history (default on)
-	BYTE keya = 0;				// The ASCII key
-	BYTE keyr = 0;				// The ASCII key to return back to the calling program
+	bool clear = flags & 0x01;		// Clear the buffer on entry
+	bool enableTab = flags & 0x02;		// Enable tab completion (default off)
+	bool enableHotkeys = !(flags & 0x04);	// Enable hotkeys (default on)
+	bool enableHistory = !(flags & 0x08);	// Enable history (default on)
+	uint8_t keya = 0;			// The ASCII key
+	uint8_t keyr = 0;			// The ASCII key to return back to the calling program
 
 	int limit = bufferLength - 1;		// Max # of characters that can be entered
 	int insertPos;				// The insert position
@@ -402,7 +402,7 @@ UINT24 mos_EDITLINE(char* buffer, int bufferLength, UINT8 flags)
 	//
 	while (keyr == 0) {
 		struct keyboard_event_t ev;
-		BYTE historyAction = 0;
+		uint8_t historyAction = 0;
 		len = strlen(buffer);
 		kbuf_wait_keydown(&ev);
 		keya = ev.ascii;
@@ -438,7 +438,7 @@ UINT24 mos_EDITLINE(char* buffer, int bufferLength, UINT8 flags)
 		case 0xA9:   // F11
 		case 0xAA:   // F12
 		{
-			UINT8 fkey = ev.vkey - 0x9F;
+			uint8_t fkey = ev.vkey - 0x9F;
 			if (enableHotkeys && handleHotkey(fkey, buffer, bufferLength, insertPos, len)) {
 				len = strlen(buffer);
 				insertPos = len;
@@ -512,7 +512,7 @@ UINT24 mos_EDITLINE(char* buffer, int bufferLength, UINT8 flags)
 		}
 
 		if (enableHistory) {
-			BOOL lineChanged = FALSE;
+			bool lineChanged = false;
 			switch (historyAction) {
 			case 1:				    // Push new item to stack
 				editHistoryPush(buffer);
@@ -587,7 +587,7 @@ void editHistoryPush(char* buffer)
 	}
 }
 
-BOOL editHistoryUp(char* buffer, int insertPos, int len, int limit)
+bool editHistoryUp(char* buffer, int insertPos, int len, int limit)
 {
 	int index = -1;
 	if (history_no > 0) {
@@ -600,21 +600,21 @@ BOOL editHistoryUp(char* buffer, int insertPos, int len, int limit)
 	return editHistorySet(buffer, insertPos, len, limit, index);
 }
 
-BOOL editHistoryDown(char* buffer, int insertPos, int len, int limit)
+bool editHistoryDown(char* buffer, int insertPos, int len, int limit)
 {
 	if (history_no < history_size) {
 		if (history_no == history_size - 1) {
 			// already at most recent entry - just leave an empty line
 			removeEditLine(buffer, insertPos, len);
 			history_no = history_size;
-			return TRUE;
+			return true;
 		}
 		return editHistorySet(buffer, insertPos, len, limit, ++history_no);
 	}
-	return FALSE;
+	return false;
 }
 
-BOOL editHistorySet(char* buffer, int insertPos, int len, int limit, int index)
+bool editHistorySet(char* buffer, int insertPos, int len, int limit, int index)
 {
 	if (index >= 0 && index < history_size) {
 		removeEditLine(buffer, insertPos, len);
@@ -626,7 +626,7 @@ BOOL editHistorySet(char* buffer, int insertPos, int len, int limit, int index)
 			strcpy(buffer, cmd_history[index]); // Copy from the history to the buffer
 		}
 		history_no = index;
-		return TRUE;
+		return true;
 	}
-	return FALSE;
+	return false;
 }

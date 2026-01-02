@@ -21,8 +21,8 @@
 #include "defines.h"
 #include "uart.h"
 
-extern volatile BYTE vpd_protocol_flags; // In globals.asm
-extern volatile BYTE rtc_enable;	 // In globals.asm
+extern volatile uint8_t vpd_protocol_flags; // In globals.asm
+extern volatile uint8_t rtc_enable;	    // In globals.asm
 
 const char* rtc_days[7][2] = {
 	{ "Sun", "Sunday" },
@@ -72,9 +72,9 @@ void rtc_update()
 // - buffer: Pointer to the RTC packet data
 // - t: Pointer to the time structure to populate
 //
-void rtc_unpack(UINT8* buffer, vdp_time_t* t)
+void rtc_unpack(uint8_t* buffer, vdp_time_t* t)
 {
-	UINT32 d = *(UINT32*)buffer;
+	uint32_t d = *(uint32_t*)buffer;
 
 	t->month = (d & 0x0000000F);	       // uint32_t month : 4; 		00000000 00000000 00000000 0000xxxx : 00 00 00 0F >> 0
 	t->day = (d & 0x000001F0) >> 4;	       // uint32_t day : 5;		00000000 00000000 0000000x xxxx0000 : 00 00 01 F0 >> 4

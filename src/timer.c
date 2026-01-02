@@ -86,10 +86,10 @@ unsigned short get_timer0()
 // Returns:
 // - True if the packet is received, False if there is a timeout
 //
-BOOL wait_VDP(unsigned char mask)
+bool wait_VDP(unsigned char mask)
 {
 	int i;
-	BOOL retVal = 0;
+	bool retVal = 0;
 
 	for (i = 0; i < 250000; i++) {		 // A small delay loop (~1s)
 		if (vpd_protocol_flags & mask) { // If we get a result then

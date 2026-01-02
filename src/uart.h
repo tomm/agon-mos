@@ -43,25 +43,25 @@
 #define FCTL_NONE 0					  //!< No flow control
 #define FCTL_HW 1					  //!< Hardware flow control
 
-#define UART_ERR_NONE ((BYTE)0x00)			  //!< The error code for success.
-#define UART_ERR_KBHIT ((BYTE)0x01)			  //!< The error code for keyboard hit.
-#define UART_ERR_FRAMINGERR ((BYTE)0x02)		  //!< The error code returned when Framing error occurs in the character received.
-#define UART_ERR_PARITYERR ((BYTE)0x03)			  //!< The error code returned when Parity error occurs in the character received.
-#define UART_ERR_OVERRUNERR ((BYTE)0x04)		  //!< The error code returned when Overrun error occurs in the receive buffer register.
-#define UART_ERR_BREAKINDICATIONERR ((BYTE)0x05)	  //!< The error code returned when Break Indication Error occurs.
-#define UART_ERR_CHARTIMEOUT ((BYTE)0x06)		  //!< The error code returned when a character time-out occurs while receiving.
-#define UART_ERR_INVBAUDRATE ((BYTE)0x07)		  //!< The error code returned when baud rate specified is invalid.
-#define UART_ERR_INVPARITY ((BYTE)0x08)			  //!< The error code returned when parity option specified is invalid.
-#define UART_ERR_INVSTOPBITS ((BYTE)0x09)		  //!< The error code returned when stop bits specified is invalid.
-#define UART_ERR_INVDATABITS ((BYTE)0x0A)		  //!< The error code returned when data bits per character specified is invalid.
-#define UART_ERR_INVTRIGGERLEVEL ((BYTE)0x0B)		  //!< The error code returned when receive FIFO trigger level specified is invalid.
-#define UART_ERR_FIFOBUFFERFULL ((BYTE)0x0C)		  //!< The error code returned when the transmit FIFO buffer is full.
-#define UART_ERR_FIFOBUFFEREMPTY ((BYTE)0x0D)		  //!< The error code returned when the receive FIFO buffer is empty.
-#define UART_ERR_RECEIVEFIFOFULL ((BYTE)0x0E)		  //!< The error code returned when the software receive FIFO buffer is full.
-#define UART_ERR_RECEIVEFIFOEMPTY ((BYTE)0x0F)		  //!< The error code returned when the software receive FIFO buffer is empty.
-#define UART_ERR_PEEKINPOLL ((BYTE)0x10)		  //!< The error code returned when 'peek a character' is done in polling mode, which is invalid.
-#define UART_ERR_USERBASE ((BYTE)0x11)			  //!< The error code base value for user applications.
-#define UART_ERR_FAILURE ((BYTE)-1)			  //!< The error code for failures.
+#define UART_ERR_NONE ((uint8_t)0x00)			  //!< The error code for success.
+#define UART_ERR_KBHIT ((uint8_t)0x01)			  //!< The error code for keyboard hit.
+#define UART_ERR_FRAMINGERR ((uint8_t)0x02)		  //!< The error code returned when Framing error occurs in the character received.
+#define UART_ERR_PARITYERR ((uint8_t)0x03)		  //!< The error code returned when Parity error occurs in the character received.
+#define UART_ERR_OVERRUNERR ((uint8_t)0x04)		  //!< The error code returned when Overrun error occurs in the receive buffer register.
+#define UART_ERR_BREAKINDICATIONERR ((uint8_t)0x05)	  //!< The error code returned when Break Indication Error occurs.
+#define UART_ERR_CHARTIMEOUT ((uint8_t)0x06)		  //!< The error code returned when a character time-out occurs while receiving.
+#define UART_ERR_INVBAUDRATE ((uint8_t)0x07)		  //!< The error code returned when baud rate specified is invalid.
+#define UART_ERR_INVPARITY ((uint8_t)0x08)		  //!< The error code returned when parity option specified is invalid.
+#define UART_ERR_INVSTOPBITS ((uint8_t)0x09)		  //!< The error code returned when stop bits specified is invalid.
+#define UART_ERR_INVDATABITS ((uint8_t)0x0A)		  //!< The error code returned when data bits per character specified is invalid.
+#define UART_ERR_INVTRIGGERLEVEL ((uint8_t)0x0B)	  //!< The error code returned when receive FIFO trigger level specified is invalid.
+#define UART_ERR_FIFOBUFFERFULL ((uint8_t)0x0C)		  //!< The error code returned when the transmit FIFO buffer is full.
+#define UART_ERR_FIFOBUFFEREMPTY ((uint8_t)0x0D)	  //!< The error code returned when the receive FIFO buffer is empty.
+#define UART_ERR_RECEIVEFIFOFULL ((uint8_t)0x0E)	  //!< The error code returned when the software receive FIFO buffer is full.
+#define UART_ERR_RECEIVEFIFOEMPTY ((uint8_t)0x0F)	  //!< The error code returned when the software receive FIFO buffer is empty.
+#define UART_ERR_PEEKINPOLL ((uint8_t)0x10)		  //!< The error code returned when 'peek a character' is done in polling mode, which is invalid.
+#define UART_ERR_USERBASE ((uint8_t)0x11)		  //!< The error code base value for user applications.
+#define UART_ERR_FAILURE ((uint8_t)-1)			  //!< The error code for failures.
 
 #define UART_IIR_LINESTATUS ((unsigned char)0x06)	  //!< Receive Line Status interrupt code in IIR.
 #define UART_IIR_DATAREADY_TRIGLVL ((unsigned char)0x04)  //!< Receive Data Ready or Trigger Level indication in IIR.
@@ -161,26 +161,26 @@
 // UART settings for open_UART0
 //
 typedef struct {
-	UINT24 baudRate;  // The baudrate
-	BYTE dataBits;	  // The number of databits per character to be used
-	BYTE stopBits;	  // The number of stopbits to be used
-	BYTE parity;	  // The parity bit option to be used
-	BYTE flowControl; // The flow control option (0: None, 1: Hardware)
-	BYTE interrupts;  // The enabled interrupts
+	uint24_t baudRate;   // The baudrate
+	uint8_t dataBits;    // The number of databits per character to be used
+	uint8_t stopBits;    // The number of stopbits to be used
+	uint8_t parity;	     // The parity bit option to be used
+	uint8_t flowControl; // The flow control option (0: None, 1: Hardware)
+	uint8_t interrupts;  // The enabled interrupts
 } UART;
 
 void init_UART0();
 void init_UART1();
 
-BYTE open_UART0(UART* pUART);
-BYTE open_UART1(UART* pUART);
+uint8_t open_UART0(UART* pUART);
+uint8_t open_UART1(UART* pUART);
 
 void close_UART1();
 
-extern volatile BYTE serialFlags; // In globals.asm
+extern volatile uint8_t serialFlags; // In globals.asm
 
 extern INT uart0_putch(INT ich);
-extern INT putch(INT ich);	  // Now in serial.asm
-extern INT getch(void);		  // Now in serial.asm
+extern INT putch(INT ich);	     // Now in serial.asm
+extern INT getch(void);		     // Now in serial.asm
 
-#endif				  /* UART_H */
+#endif				     /* UART_H */

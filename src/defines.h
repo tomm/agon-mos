@@ -23,23 +23,8 @@ typedef int int24_t;
 typedef unsigned int uint24_t;
 
 /* Some legacy types to avoid huge search/replace right now */
-typedef uint32_t UINT32;
-typedef int32_t INT32;
 typedef uint24_t UINT;
-typedef uint24_t UINT24;
-typedef int24_t INT24;
 typedef int24_t INT;
-typedef uint16_t UINT16;
-typedef int16_t INT16;
-typedef uint8_t UINT8;
-typedef int8_t INT8;
-typedef uint8_t BYTE;
-typedef uint8_t UINT8;
-typedef uint8_t UCHAR;
-typedef bool BOOL;
-
-#define TRUE true
-#define FALSE false
 
 // ZDS segment stuff
 extern int8_t __heapbot[];

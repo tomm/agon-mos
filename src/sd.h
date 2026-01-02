@@ -16,9 +16,9 @@
 #define SD_ERROR 1
 #define SD_READY 0
 
-BYTE SD_readBlocks(DWORD addr, BYTE* buf, WORD count);
-BYTE SD_writeBlocks(DWORD addr, const BYTE* buf, WORD count);
+uint8_t SD_readBlocks(DWORD addr, uint8_t* buf, WORD count);
+uint8_t SD_writeBlocks(DWORD addr, const uint8_t* buf, WORD count);
 
-BYTE SD_init();
+uint8_t SD_init();
 
 #endif /* SD_H */

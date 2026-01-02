@@ -6,7 +6,7 @@
 extern volatile char i2c_slave_rw;
 extern volatile char i2c_error;
 extern volatile char i2c_role;
-extern volatile UINT8 i2c_msg_size;
+extern volatile uint8_t i2c_msg_size;
 extern volatile char* i2c_msg_ptr;
 
 // I2C_CTL register bits
@@ -42,9 +42,9 @@ extern volatile char* i2c_msg_ptr;
 #define I2C_STX 0x08
 
 void init_I2C(void);
-void mos_I2C_OPEN(UINT8 frequency);
+void mos_I2C_OPEN(uint8_t frequency);
 void mos_I2C_CLOSE(void);
-UINT8 mos_I2C_WRITE(UINT8 i2c_address, UINT8 size, char* buffer);
-UINT8 mos_I2C_READ(UINT8 i2c_address, UINT8 size, char* buffer);
+uint8_t mos_I2C_WRITE(uint8_t i2c_address, uint8_t size, char* buffer);
+uint8_t mos_I2C_READ(uint8_t i2c_address, uint8_t size, char* buffer);
 
 #endif /* _I2C_H_*/

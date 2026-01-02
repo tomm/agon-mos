@@ -30,8 +30,8 @@
 
 // Set the Line Control Register for data, stop and parity bits
 //
-#define SETREG_LCR0(data, stop, parity) (io_out(UART0_LCTL, ((BYTE)(((data) - (BYTE)5) & (BYTE)0x3) | (BYTE)((((stop) - (BYTE)0x1) & (BYTE)0x1) << (BYTE)0x2) | (BYTE)((parity) << (BYTE)0x3))))
-#define SETREG_LCR1(data, stop, parity) (io_out(UART1_LCTL, ((BYTE)(((data) - (BYTE)5) & (BYTE)0x3) | (BYTE)((((stop) - (BYTE)0x1) & (BYTE)0x1) << (BYTE)0x2) | (BYTE)((parity) << (BYTE)0x3))))
+#define SETREG_LCR0(data, stop, parity) (io_out(UART0_LCTL, ((uint8_t)(((data) - (uint8_t)5) & (uint8_t)0x3) | (uint8_t)((((stop) - (uint8_t)0x1) & (uint8_t)0x1) << (uint8_t)0x2) | (uint8_t)((parity) << (uint8_t)0x3))))
+#define SETREG_LCR1(data, stop, parity) (io_out(UART1_LCTL, ((uint8_t)(((data) - (uint8_t)5) & (uint8_t)0x3) | (uint8_t)((((stop) - (uint8_t)0x1) & (uint8_t)0x1) << (uint8_t)0x2) | (uint8_t)((parity) << (uint8_t)0x3))))
 
 void init_UART0()
 {
@@ -55,13 +55,13 @@ void init_UART1()
 // Parameters:
 // - pUART: Structure containing the initialisation data
 //
-BYTE open_UART0(UART* pUART)
+uint8_t open_UART0(UART* pUART)
 {
-	UINT32 mc = MASTERCLOCK;				      // UART baud rate calculation
-	UINT32 cb = CLOCK_DIVISOR_16 * (uint32_t)pUART->baudRate;     // split to avoid eZ80 maths overflow error
-	UINT32 br = mc / cb;					      // with larger baud rate values
+	uint32_t mc = MASTERCLOCK;				      // UART baud rate calculation
+	uint32_t cb = CLOCK_DIVISOR_16 * (uint32_t)pUART->baudRate;   // split to avoid eZ80 maths overflow error
+	uint32_t br = mc / cb;					      // with larger baud rate values
 
-	UCHAR pins = PORTPIN_ZERO | PORTPIN_ONE;		      // The transmit and receive pins
+	uint8_t pins = PORTPIN_ZERO | PORTPIN_ONE;		      // The transmit and receive pins
 
 	serialFlags &= 0xF0;
 
@@ -78,7 +78,7 @@ BYTE open_UART0(UART* pUART)
 
 	io_setreg(UART0_LCTL, UART_LCTL_DLAB);			      // Select DLAB to access baud rate generator
 	io_out(UART0_BRG_L, br & 0xFF);				      // Load divisor low
-	io_out(UART0_BRG_H, (BYTE)((br & 0xFF00) >> 8));	      // Load divisor high
+	io_out(UART0_BRG_H, (uint8_t)((br & 0xFF00) >> 8));	      // Load divisor high
 	io_out(UART0_LCTL, io_in(UART0_LCTL) & (~UART_LCTL_DLAB));    // Reset DLAB; dont disturb other bits
 	io_out(UART0_MCTL, 0x00);				      // Bring modem control register to reset value
 	io_out(UART0_FCTL, 0x07);				      // Enable and clear hardware FIFOs
@@ -95,13 +95,13 @@ BYTE open_UART0(UART* pUART)
 // Parameters:
 // - pUART: Structure containing the initialisation data
 //
-BYTE open_UART1(UART* pUART)
+uint8_t open_UART1(UART* pUART)
 {
-	UINT32 mc = MASTERCLOCK;				      // UART baud rate calculation
-	UINT32 cb = CLOCK_DIVISOR_16 * (uint32_t)pUART->baudRate;     // split to avoid eZ80 maths overflow error
-	UINT32 br = mc / cb;					      // with larger baud rate values
+	uint32_t mc = MASTERCLOCK;				      // UART baud rate calculation
+	uint32_t cb = CLOCK_DIVISOR_16 * (uint32_t)pUART->baudRate;   // split to avoid eZ80 maths overflow error
+	uint32_t br = mc / cb;					      // with larger baud rate values
 
-	UCHAR pins = PORTPIN_ZERO | PORTPIN_ONE;		      // The transmit and receive pins
+	uint8_t pins = PORTPIN_ZERO | PORTPIN_ONE;		      // The transmit and receive pins
 
 	serialFlags &= 0x0F;
 
@@ -118,7 +118,7 @@ BYTE open_UART1(UART* pUART)
 
 	io_setreg(UART1_LCTL, UART_LCTL_DLAB);			      // Select DLAB to access baud rate generator
 	io_out(UART1_BRG_L, br & 0xFF);				      // Load divisor low
-	io_out(UART1_BRG_H, (BYTE)((br & 0xFF00) >> 8));	      // Load divisor high
+	io_out(UART1_BRG_H, (uint8_t)((br & 0xFF00) >> 8));	      // Load divisor high
 	io_out(UART1_LCTL, io_in(UART1_LCTL) & (~UART_LCTL_DLAB));    // Reset DLAB; dont disturb other bits
 	io_out(UART1_MCTL, 0x00);				      // Bring modem control register to reset value
 	io_out(UART1_FCTL, 0x07);				      // Enable and clear hardware FIFOs
