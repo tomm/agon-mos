@@ -206,12 +206,18 @@ term_init:	; size the terminal. needed after mode change
 		call udiv24
 		ld a,e
 		ld (term_width),a
+		ld (_scrcols),a	; also set core MOS value
 
 		ld hl,(iy+9)	; screen.height
 		ld de, FONT_HEIGHT
 		call udiv24
 		ld a,e
 		ld (term_height),a
+		ld (_scrrows),a	; also set core MOS value
+
+		; Pretend to be a 16 colour VDP terminal
+		ld a,16
+		ld (_scrcolours),a
 
 		xor a
 		ld (_fb_curs_x),a

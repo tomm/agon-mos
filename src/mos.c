@@ -70,7 +70,7 @@ extern void* set_vector(unsigned int vector, void (*handler)(void)); // In vecto
 extern int exec16(UINT24 addr, char* params);			     // In misc.asm
 extern int exec24(UINT24 addr, char* params);			     // In misc.asm
 
-extern BYTE scrcols, scrcolours;				     // In globals.asm
+extern volatile BYTE scrcols, scrcolours;			     // In globals.asm
 extern volatile BYTE keyascii;					     // In globals.asm
 extern volatile BYTE vpd_protocol_flags;			     // In globals.asm
 extern BYTE rtc;						     // In globals.asm
@@ -206,7 +206,9 @@ BYTE mos_getkey()
 UINT24 mos_input(char* buffer, int bufferLength)
 {
 	INT24 retval;
-	printf("%s %c", cwd, MOS_prompt);
+	uint8_t oldTextFg = active_console->get_fg_color_index();
+	uint8_t pwdColor = scrcolours > 2 ? 14 & (scrcolours - 1) : 15;
+	printf("\x11%c%s\x11%c %c", pwdColor, cwd, oldTextFg, MOS_prompt);
 	retval = mos_EDITLINE(buffer, bufferLength, 3);
 	printf("\n\r");
 	return retval;

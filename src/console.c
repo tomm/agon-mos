@@ -66,9 +66,7 @@ void fbGetCursorPos()
 
 void fbGetModeInformation()
 {
-	scrcols = fbterm_width;
-	scrrows = fbterm_height;
-	scrcolours = 16;
+	// Nothing to do here. fbconsole.asm term_init() handles this
 }
 
 uint8_t fb_get_fg_color_index()
@@ -115,10 +113,14 @@ void console_enable_fb()
 	active_console = &fb_console;
 	/* Call mos_api_setresetvector to set rst10 vector */
 	asm volatile(
-	    "ld a,0x61 \r\n"
-	    "ld e,0x10 \r\n"
-	    "ld hl,_fbconsole_rst10_handler \r\n"
-	    "rst.lil 8\r\n");
+	    "push de\n"
+	    "push hl\n"
+	    "ld a,0x61 \n"
+	    "ld e,0x10 \n"
+	    "ld hl,_fbconsole_rst10_handler \n"
+	    "rst.lil 8\n"
+	    "pop hl\n"
+	    "pop de\n");
 }
 
 void console_enable_vdp()
@@ -126,8 +128,12 @@ void console_enable_vdp()
 	active_console = &vdp_console;
 	/* Call mos_api_setresetvector to set rst10 vector */
 	asm volatile(
-	    "ld a,0x61 \r\n"
-	    "ld e,0x10 \r\n"
-	    "ld hl,rst_10_handler \r\n"
-	    "rst.lil 8\r\n");
+	    "push de\n"
+	    "push hl\n"
+	    "ld a,0x61 \n"
+	    "ld e,0x10 \n"
+	    "ld hl,rst_10_handler \n"
+	    "rst.lil 8\n"
+	    "pop hl\n"
+	    "pop de\n");
 }
