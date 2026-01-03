@@ -1287,6 +1287,7 @@ int mos_cmdHELP(char* ptr)
 	if (hasCmd && strcasecmp(cmd, "all") == 0) {
 		for (i = 0; i < mosCommands_count; ++i) {
 			printCommandInfo(&mosCommands[i], false);
+			if (paginated_exit) break;
 		}
 		return 0;
 	}
