@@ -109,7 +109,7 @@ bool insertCharacter(char* buffer, char c, int insertPos, int len, int limit)
 // Returns:
 // - true if the character was deleted, otherwise false
 //
-bool deleteCharacter(char* buffer, int insertPos, int len)
+static bool deleteCharacter(char* buffer, int insertPos, int len)
 {
 	int i;
 	int count = 0;
@@ -128,9 +128,27 @@ bool deleteCharacter(char* buffer, int insertPos, int len)
 	return 0;
 }
 
+static uint8_t deleteWord(char* buffer, int insertPos, int len)
+{
+	uint8_t num_deleted = 0;
+	// First the trailing spaces
+	while (insertPos > 0 && buffer[insertPos - 1] == ' ') {
+		deleteCharacter(buffer, insertPos, len);
+		num_deleted++;
+		insertPos--;
+	}
+	// Then 1 'word'
+	while (insertPos > 0 && buffer[insertPos - 1] != ' ') {
+		deleteCharacter(buffer, insertPos, len);
+		num_deleted++;
+		insertPos--;
+	}
+	return num_deleted;
+}
+
 // handle HOME
 //
-int gotoEditLineStart(int insertPos)
+static int gotoEditLineStart(int insertPos)
 {
 	while (insertPos > 0) {
 		doLeftCursor();
@@ -141,7 +159,7 @@ int gotoEditLineStart(int insertPos)
 
 // handle END
 //
-int gotoEditLineEnd(int insertPos, int len)
+static int gotoEditLineEnd(int insertPos, int len)
 {
 	while (insertPos < len) {
 		doRightCursor();
@@ -152,7 +170,7 @@ int gotoEditLineEnd(int insertPos, int len)
 
 // remove current edit line
 //
-void removeEditLine(char* buffer, int insertPos, int len)
+static void removeEditLine(char* buffer, int insertPos, int len)
 {
 	// goto start of line
 	insertPos = gotoEditLineStart(insertPos);
@@ -169,7 +187,7 @@ void removeEditLine(char* buffer, int insertPos, int len)
 // Returns:
 // - 1 if the hotkey was handled, otherwise 0
 //
-bool handleHotkey(uint8_t fkey, char* buffer, int bufferLength, int insertPos, int len)
+static bool handleHotkey(uint8_t fkey, char* buffer, int bufferLength, int insertPos, int len)
 {
 	if (hotkey_strings[fkey] != NULL) {
 		char* wildcardPos = strstr(hotkey_strings[fkey], "%s");
@@ -487,10 +505,14 @@ uint24_t mos_EDITLINE(char* buffer, int bufferLength, uint8_t flags)
 						insertPos++;
 					}
 					break;
-				case 0x1B:		   // Escape
+				case 0x17:		   // CTRL-W
+					// Delete last word
+					insertPos -= deleteWord(buffer, insertPos, len);
+					break;
+				case 0x1B: // Escape
 					keyr = keya;
 					break;
-				case 0x7F:		   // Backspace
+				case 0x7F: // Backspace
 					if (deleteCharacter(buffer, insertPos, len)) {
 						insertPos--;
 					}
