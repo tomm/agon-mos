@@ -42,6 +42,7 @@
 #include "defines.h"
 #include "fbconsole.h"
 #include "ff.h"
+#include "globals.h"
 #include "i2c.h"
 #include "mos.h"
 #include "mos_editor.h"
@@ -50,17 +51,11 @@
 #include "uart.h"
 #include "umm_malloc.h"
 
-extern volatile uint8_t scrcolours; // In globals.asm
-
 extern void* set_vector(unsigned int vector, void (*handler)(void));
 
 extern void vblank_handler(void);
 extern void uart0_handler(void);
 extern void i2c_handler(void);
-
-extern char hardReset;		    // 1 = hard cpu reset, 0 = soft reset
-extern volatile char keycode;	    // Keycode
-extern volatile char gp;	    // General poll variable
 
 extern bool vdpSupportsTextPalette;
 

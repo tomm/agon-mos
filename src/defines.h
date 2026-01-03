@@ -14,6 +14,8 @@
 #define MOS_DEFINES_H
 
 #define DEBUG 0 // Set to 0 for production, 1 for extra debug information
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 #include <stdbool.h>
 #include <stdint.h>

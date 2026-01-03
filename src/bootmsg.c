@@ -1,9 +1,8 @@
+#include "globals.h"
 #include "uart.h"
 #include "version.h"
 #include <stdio.h>
 #include <string.h>
-
-extern volatile uint8_t scrcolours, scrpixelIndex; // In globals.asm
 
 static uint8_t quickrand(void)
 {

@@ -1,17 +1,11 @@
 #include "console.h"
 #include "defines.h"
 #include "fbconsole.h"
+#include "globals.h"
 #include "mos.h"
 #include "timer.h"
 #include "uart.h"
 #include <stdio.h>
-
-extern volatile uint8_t vpd_protocol_flags; // In globals.asm
-extern uint8_t cursorX;
-extern uint8_t cursorY;
-extern uint8_t scrcols;
-extern uint8_t scrrows;
-extern uint8_t scrcolours, scrpixelIndex;   // In globals.asm
 
 // Get the current cursor position from the VPD
 //

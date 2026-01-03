@@ -19,10 +19,8 @@
 
 #include "clock.h"
 #include "defines.h"
+#include "globals.h"
 #include "uart.h"
-
-extern volatile uint8_t vpd_protocol_flags; // In globals.asm
-extern volatile uint8_t rtc_enable;	    // In globals.asm
 
 const char* rtc_days[7][2] = {
 	{ "Sun", "Sunday" },

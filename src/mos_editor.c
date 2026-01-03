@@ -23,25 +23,13 @@
 
 #include "console.h"
 #include "defines.h"
+#include "globals.h"
 #include "keyboard_buffer.h"
 #include "mos.h"
 #include "mos_editor.h"
 #include "timer.h"
 #include "uart.h"
 #include "umm_malloc.h"
-
-extern volatile uint8_t vpd_protocol_flags; // In globals.asm
-extern volatile uint8_t keyascii;	    // In globals.asm
-extern volatile uint8_t keycode;	    // In globals.asm
-extern volatile uint8_t keydown;	    // In globals.asm
-extern volatile uint8_t keycount;	    // In globals.asm
-
-extern uint8_t history_no;
-extern uint8_t history_size;
-
-extern uint8_t cursorX;
-extern uint8_t cursorY;
-extern uint8_t scrcols;
 
 // Storage for the command history
 //

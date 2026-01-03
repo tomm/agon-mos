@@ -58,6 +58,8 @@
 #include "umm_malloc.h"
 #ifdef FEAT_FRAMEBUFFER
 #include "fbconsole.h"
+#include "formatting.h"
+#include "globals.h"
 #endif								     /* FEAT_FRAMEBUFFER */
 #if DEBUG > 0
 #include "tests.h"
@@ -70,9 +72,6 @@ extern void* set_vector(unsigned int vector, void (*handler)(void)); // In vecto
 extern int exec16(uint24_t addr, char* params);			     // In misc.asm
 extern int exec24(uint24_t addr, char* params);			     // In misc.asm
 
-extern volatile uint8_t scrcols, scrcolours;			     // In globals.asm
-extern volatile uint8_t keyascii;				     // In globals.asm
-extern volatile uint8_t vpd_protocol_flags;			     // In globals.asm
 extern uint8_t rtc;						     // In globals.asm
 
 static FATFS fs;						     // Handle for the file system
@@ -80,8 +79,6 @@ static char* mos_strtok_ptr;					     // Pointer for current position in string 
 
 TCHAR cwd[256];							     // Hold current working directory.
 bool sdcardDelay = false;
-
-extern volatile uint8_t history_no;
 
 t_mosFileObject mosFileObjects[MOS_maxOpenFiles];
 
@@ -207,8 +204,9 @@ uint24_t mos_input(char* buffer, int bufferLength)
 {
 	int24_t retval;
 	uint8_t oldTextFg = active_console->get_fg_color_index();
-	uint8_t pwdColor = scrcolours > 2 ? 14 & (scrcolours - 1) : 15;
-	printf("\x11%c%s\x11%c %c", pwdColor, cwd, oldTextFg, MOS_prompt);
+	set_color(get_primary_color());
+	printf("%s %c", cwd, MOS_prompt);
+	set_color(oldTextFg);
 	retval = mos_EDITLINE(buffer, bufferLength, 3);
 	printf("\n\r");
 	return retval;
@@ -1118,18 +1116,22 @@ int mos_cmdMEMDUMP(char* ptr)
 	}
 	int i = 0;
 	const int width = scrcols <= 40 ? 8 : 16;
+
+	paginated_start(true);
+
 	while (i < len) {
-		printf("%06x:", addr + i);
+		paginated_printf("%06x:", addr + i);
 		for (int c = 0; c < width; c++) {
 			if ((c & 3) == 0) putch(' ');
-			printf("%02x", *(uint8_t*)(addr + i + c));
+			paginated_printf("%02x", *(uint8_t*)(addr + i + c));
 		}
 		putch(' ');
 		for (int c = 0; c < width; c++) {
 			putch(27);
 			putch(*(uint8_t*)(addr + i + c));
 		}
-		printf("\r\n");
+		paginated_printf("\r\n");
+		if (paginated_exit) break;
 		i += width;
 	}
 	return 0;
@@ -1198,16 +1200,16 @@ int mos_cmdMOUNT(char* ptr)
 	return 0;
 }
 
-void printCommandInfo(t_mosCommand* cmd, bool full)
+static void printCommandInfo(t_mosCommand* cmd, bool full)
 {
 	int aliases = 0;
 	int i;
 
 	if (cmd->help == NULL) return;
 
-	printf("%s", cmd->name);
+	paginated_printf("%s", cmd->name);
 	if (cmd->args != NULL)
-		printf(" %s", cmd->args);
+		paginated_printf(" %s", cmd->args);
 
 	// find aliases
 	for (i = 0; i < mosCommands_count; ++i) {
@@ -1217,24 +1219,24 @@ void printCommandInfo(t_mosCommand* cmd, bool full)
 	}
 	if (aliases > 0) {
 		// print the aliases
-		printf(" (Aliases: ");
+		paginated_printf(" (Aliases: ");
 		for (i = 0; i < mosCommands_count; ++i) {
 			if (mosCommands[i].func == cmd->func && mosCommands[i].name != cmd->name) {
-				printf("%s", mosCommands[i].name);
+				paginated_printf("%s", mosCommands[i].name);
 				if (aliases == 2) {
-					printf(" and ");
+					paginated_printf(" and ");
 				} else if (aliases > 1) {
-					printf(", ");
+					paginated_printf(", ");
 				}
 				aliases--;
 			}
 		}
-		printf(")");
+		paginated_printf(")");
 	}
 
-	printf("\r\n");
+	paginated_printf("\n");
 	if (full) {
-		printf("%s\r\n", cmd->help);
+		paginated_printf("%s\n", cmd->help);
 	}
 }
 
@@ -1254,6 +1256,8 @@ int mos_cmdHELP(char* ptr)
 		cmd = "help";
 	}
 
+	paginated_start(true);
+
 	for (i = 0; i < mosCommands_count; ++i) {
 		if (strcasecmp(cmd, mosCommands[i].name) == 0) {
 			printCommandInfo(&mosCommands[i], true);
@@ -1261,20 +1265,20 @@ int mos_cmdHELP(char* ptr)
 				// must be showing "help" command with no args, so show list of all commands
 				int col = 0;
 				int maxCol = scrcols;
-				printf("List of commands:\r\n");
+				paginated_printf("List of commands:\n");
 				for (i = 1; i < mosCommands_count; ++i) {
 					if (mosCommands[i].help == NULL) continue;
 					if (col + strlen(mosCommands[i].name) + 2 >= maxCol) {
-						printf("\r\n");
+						paginated_printf("\n");
 						col = 0;
 					}
-					printf("%s", mosCommands[i].name);
+					paginated_printf("%s", mosCommands[i].name);
 					if (i < mosCommands_count - 1) {
-						printf(", ");
+						paginated_printf(", ");
 					}
 					col += strlen(mosCommands[i].name) + 2;
 				}
-				printf("\r\n");
+				paginated_printf("\n");
 			}
 			return 0;
 		}
@@ -1287,7 +1291,7 @@ int mos_cmdHELP(char* ptr)
 		return 0;
 	}
 
-	printf("Command not found: %s\r\n", cmd);
+	paginated_printf("Command not found: %s\n", cmd);
 	return 0;
 }
 
@@ -1370,34 +1374,16 @@ uint24_t mos_TYPE(char* filename)
 		return fr;
 	}
 
+	paginated_start(true);
+
 	while (1) {
 		fr = f_read(&fil, (void*)buf, sizeof buf, &br);
 		if (br == 0)
 			break;
-		for (i = 0; i < br; ++i) {
-			if ((buf[i] >= 32 && buf[i] <= 127) || (buf[i] == '\r')) {
-				putch(buf[i]);
-			} else if (buf[i] == '\n') {
-				putch(buf[i]);
-				putch('\r');
-			} else {
-				// escape non-ascii stuff so it's drawn to screen, not interpreted
-				putch(27);
-				putch(buf[i]);
-			}
-
-			/* Allow user to interrupt */
-			if (i == sizeof(buf) - 1 || buf[i] == '\n') {
-				if (kbuf_poll_event(&ev) && ev.isdown) {
-					if (ev.ascii == 27) goto stop;
-					// Wait for any key before resuming
-					kbuf_wait_keydown(&ev);
-					if (ev.ascii == 27) goto stop;
-				}
-			}
-		}
+		paginated_write(buf, br);
+		if (paginated_exit) break;
 	}
-stop:
+
 	f_close(&fil);
 	return FR_OK;
 }
@@ -1544,47 +1530,6 @@ uint24_t mos_DIRFallback(char* path, bool longListing, bool hideVolumeInfo)
 	return fr;
 }
 
-static uint8_t paginated_print_row;
-void start_paginated_printf(void)
-{
-	paginated_print_row = 0;
-}
-void end_paginated_printf(void)
-{
-	printf("%d lines\n", paginated_print_row);
-}
-
-extern uint8_t scrrows;
-
-void paginated_printf(const char* format, ...) __attribute__((format(printf, 1, 2)));
-void paginated_printf(const char* format, ...)
-{
-	struct keyboard_event_t ev;
-	va_list ap;
-	va_start(ap, format);
-	int size = vsnprintf(NULL, 0, format, ap) + 1;
-	if (size > 0) {
-		va_end(ap);
-		va_start(ap, format);
-		char buf[size + 1];
-		vsnprintf(buf, size, format, ap);
-
-		for (int i = 0; i < size; i++) {
-			putch(buf[i]);
-			if (buf[i] == '\n') {
-				paginated_print_row = paginated_print_row + 1;
-				if (paginated_print_row >= scrrows - 2) {
-					printf("\x11\x0f--more--");
-					kbuf_wait_keydown(&ev);
-					paginated_print_row = 0;
-					putch('\r');
-				}
-			}
-		}
-	}
-	va_end(ap);
-}
-
 // Directory listing
 // Returns:
 // - FatFS return code
@@ -1681,7 +1626,7 @@ uint24_t mos_DIR(char* inputPath, bool longListing)
 	fno_num = 0;
 	fr = f_opendir(&dir, dirPath);
 
-	start_paginated_printf();
+	paginated_start(true);
 
 	if (fr == FR_OK) {
 		paginated_printf("Volume: ");
@@ -1690,18 +1635,18 @@ uint24_t mos_DIR(char* inputPath, bool longListing)
 		} else {
 			paginated_printf("<No Volume Label>");
 		}
-		paginated_printf("\n\r");
+		paginated_printf("\n");
 
 		if (strcmp(dirPath, ".") == 0) {
 			f_getcwd(cwd, sizeof(cwd));
-			paginated_printf("Directory: %s\r\n\r\n", cwd);
+			paginated_printf("Directory: %s\n\n", cwd);
 		} else
-			paginated_printf("Directory: %s\r\n\r\n", dirPath);
+			paginated_printf("Directory: %s\n\n", dirPath);
 
 		fr = get_num_dirents(dirPath, &num_dirents);
 
 		if (num_dirents == 0) {
-			paginated_printf("No files found\r\n");
+			paginated_printf("No files found\n");
 			goto cleanup;
 		}
 
@@ -1751,13 +1696,14 @@ uint24_t mos_DIR(char* inputPath, bool longListing)
 
 	if (fr == FR_OK) {
 		int col = 0;
-		int maxCols = scrcols / longestFilename;
+		int maxCols = MAX(1, scrcols / longestFilename);
 
 		num_dirents = fno_num;
 		qsort(fnos, num_dirents, sizeof(SmallFilInfo), (int (*)(const void*, const void*)) & cmp_filinfo);
 		fno_num = 0;
 
 		for (; fno_num < num_dirents; fno_num++) {
+			if (paginated_exit) break;
 			fno = &fnos[fno_num];
 			if (longListing) {
 				yr = (fno->fdate & 0xFE00) >> 9;  // Bits 15 to  9, from 1980
@@ -1766,23 +1712,21 @@ uint24_t mos_DIR(char* inputPath, bool longListing)
 				hr = (fno->ftime & 0xF800) >> 11; // Bits 15 to 11
 				mi = (fno->ftime & 0x07E0) >> 5;  // Bits 10 to  5
 
-				if (useColour) {
-					bool isDir = fno->fattrib & AM_DIR;
-					paginated_printf("\x11%c%04d/%02d/%02d\t%02d:%02d %c %*lu \x11%c%s\r\n", textFg, yr + 1980, mo, da, hr, mi, isDir ? 'D' : ' ', 8, fno->fsize, isDir ? dirColour : fileColour, fno->fname);
-				} else {
-					paginated_printf("%04d/%02d/%02d\t%02d:%02d %c %*lu %s\r\n", yr + 1980, mo, da, hr, mi, fno->fattrib & AM_DIR ? 'D' : ' ', 8, fno->fsize, fno->fname);
-				}
+				bool isDir = fno->fattrib & AM_DIR;
+				if (useColour) set_color(textFg);
+				paginated_printf("%04d/%02d/%02d\t%02d:%02d %c %*lu ", yr + 1980, mo, da, hr, mi, isDir ? 'D' : ' ', 8, fno->fsize);
+				if (useColour) set_color(isDir ? dirColour : fileColour);
+				paginated_printf("%s\n", fno->fname);
 			} else {
 				if (col == maxCols) {
 					col = 0;
-					paginated_printf("\r\n");
+					paginated_printf("\n");
 				}
 
 				if (useColour) {
-					paginated_printf("\x11%c%-*s", fno->fattrib & AM_DIR ? dirColour : fileColour, col == (maxCols - 1) ? longestFilename - 1 : longestFilename, fno->fname);
-				} else {
-					paginated_printf("%-*s", col == (maxCols - 1) ? longestFilename - 1 : longestFilename, fno->fname);
+					set_color(fno->fattrib & AM_DIR ? dirColour : fileColour);
 				}
+				paginated_printf("%-*s", col == (maxCols - 1) ? longestFilename - 1 : longestFilename, fno->fname);
 				col++;
 			}
 			umm_free(fno->fname);
@@ -1790,12 +1734,12 @@ uint24_t mos_DIR(char* inputPath, bool longListing)
 	}
 
 	if (!longListing) {
-		paginated_printf("\r\n");
+		paginated_printf("\n");
 	}
 	umm_free(fnos);
 
 	if (useColour) {
-		paginated_printf("\x11%c", textFg);
+		set_color(textFg);
 	}
 
 cleanup:
