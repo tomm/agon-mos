@@ -1146,6 +1146,7 @@ int mos_cmdMEMDUMP(char* ptr)
 int mos_cmdCREDITS(char* ptr)
 {
 	mos_bootmsg();
+	printf("Agon Quark MOS (c) 2022 Dean Belfield\n\r");
 	printf("FabGL 1.0.8 (c) 2019-2022 by Fabrizio Di Vittorio\n\r");
 	printf("FatFS R0.14b (c) 2021 ChaN\n\r");
 	printf("umm_malloc Copyright (c) 2015 Ralph Hempel\n\r");
