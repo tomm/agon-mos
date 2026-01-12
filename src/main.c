@@ -184,5 +184,6 @@ int main(void)
 		}
 	}
 
+	// never reached -- and main can't return
 	return 0;
 }

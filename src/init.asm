@@ -156,11 +156,9 @@ __init:
 		ld (hl), de
 
 		; Normal stack
-		ld sp, 0xc0000
+		ld sp, __stack
 
-		call	_main 				; int main(void)
-	.loopforever:
-		jr .loopforever
+		jp	_main 				; void main(void)
 
 ldir_handle_zerolen:	; bc=count, hl=src, de=dest
 		; Do nothing if count==0

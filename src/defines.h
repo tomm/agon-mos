@@ -28,7 +28,8 @@ typedef unsigned int uint24_t;
 typedef uint24_t UINT;
 typedef int24_t INT;
 
-// ZDS segment stuff
+// Linker script symbols
+extern int8_t __MOS_systemAddress[];
 extern int8_t __heapbot[];
 extern int8_t __heaptop[];
 extern int8_t _stack[];
@@ -39,7 +40,7 @@ extern int8_t _low_romdata[];
 extern int _len_data;
 
 #define SPL_STACK_SIZE 2048
-#define HEAP_LEN ((int)_stack - (int)__heapbot - SPL_STACK_SIZE)
+#define HEAP_LEN ((int)__heaptop - (int)__heapbot)
 
 // VDP specific (for VDU 23,0,n commands)
 //

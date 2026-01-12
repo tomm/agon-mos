@@ -1076,12 +1076,17 @@ int mos_cmdMEM(char* ptr)
 	int try_len = HEAP_LEN;
 
 	printf("ROM      &000000-&01ffff     %2d%% used\r\n", ((int)__rodata_end + (int)__data_len) / 1311);
-	printf("USER:LO  &%06x-&%06x %6d bytes\r\n", 0x40000, (int)__data_start - 1, (int)__data_start - 0x40000);
+	if (fb_mode != 255) {
+		printf("USER:LO  &%06x-&%06x %6d bytes\r\n", 0x40000, (int)fb_base - 1, (int)fb_base - 0x40000);
+		printf("FRAMEBUF &%06x-&%06x %6d bytes\r\n", (uint24_t)fb_base, (int)_stack - SPL_STACK_SIZE - 1, (int)_stack - SPL_STACK_SIZE - (int)fb_base);
+	} else {
+		printf("USER:LO  &%06x-&%06x %6d bytes\r\n", 0x40000, (int)_stack - SPL_STACK_SIZE - 1, (int)_stack - SPL_STACK_SIZE - 0x40000);
+	}
+	printf("STACK24  &%06x-&%06x %6d bytes\r\n", (int)_stack - SPL_STACK_SIZE, (int)_stack - 1, SPL_STACK_SIZE);
 	// data and bss together
 	printf("MOS:DATA &%06x-&%06x %6d bytes\r\n", (int)__data_start, (int)__heapbot - 1, (int)__heapbot - (int)__data_start);
-	printf("MOS:HEAP &%06x-&%06x %6d bytes\r\n", (int)__heapbot, (int)_stack - SPL_STACK_SIZE - 1, HEAP_LEN);
-	printf("STACK24  &%06x-&%06x %6d bytes\r\n", 0xc0000 - SPL_STACK_SIZE, 0xbffff, SPL_STACK_SIZE);
-	printf("USER:HI  &b7e000-&b7ffff   8192 bytes\r\n");
+	printf("MOS:HEAP &%06x-&%06x %6d bytes\r\n", (int)__heapbot, (int)__heaptop - 1, HEAP_LEN);
+	printf("RESERVED &b7e000-&b7ffff   8192 bytes\r\n");
 	printf("\r\n");
 
 	// find largest kmalloc contiguous region
@@ -1095,11 +1100,6 @@ int mos_cmdMEM(char* ptr)
 
 	printf("Largest free MOS:HEAP fragment: %d b\r\n", try_len);
 	printf("Sysvars at &%06x\r\n", (uint24_t)sysvars);
-#ifdef FEAT_FRAMEBUFFER
-	if (fb_base) {
-		printf("Framebuffer at &%06x\r\n", (uint24_t)fb_base);
-	}
-#endif /* FEAT_FRAMEBUFFER */
 	printf("\r\n");
 
 	return 0;
@@ -1323,7 +1323,7 @@ uint24_t mos_LOAD(char* filename, uint24_t address, uint24_t size)
 			size = fSize;
 		}
 		// Check potential system area overlap
-		if ((address <= MOS_externLastRAMaddress) && ((address + size) > MOS_systemAddress)) {
+		if ((address <= MOS_externLastRAMaddress) && ((address + size) > (int)__MOS_systemAddress)) {
 			fr = MOS_OVERLAPPING_SYSTEM;
 		} else {
 			fr = f_read(&fil, (void*)address, size, &br);
@@ -2451,7 +2451,7 @@ uint24_t mos_FBMODE(int req_mode)
 		return MOS_INVALID_PARAMETER;
 	}
 
-	void* fb_base = (void*)(MOS_systemAddress - minfo->width * minfo->height);
+	void* fb_base = (void*)((int)__MOS_systemAddress - SPL_STACK_SIZE - minfo->width * minfo->height);
 
 	if (fb_scanline_offsets) {
 		umm_free(fb_scanline_offsets);
