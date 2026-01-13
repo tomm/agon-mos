@@ -72,7 +72,7 @@ void mos_I2C_CLOSE(void)
 // - buffer: pointer to the first byte to write
 // Returns:
 // - 0 on success, or errorcode
-uint8_t mos_I2C_WRITE(uint8_t i2c_address, uint8_t size, char* buffer)
+uint8_t mos_I2C_WRITE(uint8_t i2c_address, uint8_t size, char *buffer)
 {
 
 	// send maximum of 32 bytes in a single I2C transaction
@@ -120,7 +120,7 @@ uint8_t mos_I2C_WRITE(uint8_t i2c_address, uint8_t size, char* buffer)
 // - buffer: pointer to the first byte to read
 // Returns:
 // - 0 on success, or errorcode
-uint8_t mos_I2C_READ(uint8_t i2c_address, uint8_t size, char* buffer)
+uint8_t mos_I2C_READ(uint8_t i2c_address, uint8_t size, char *buffer)
 {
 	if (size == 0) return 0;
 	if (i2c_address > 127) return RET_NORESPONSE;

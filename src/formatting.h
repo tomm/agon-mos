@@ -6,8 +6,8 @@
 extern bool paginated_exit;
 
 void paginated_start(bool enabled);
-void paginated_write(const char* buf, int len);
-void paginated_printf(const char* format, ...) __attribute__((format(printf, 1, 2)));
+void paginated_write(const char *buf, int len);
+void paginated_printf(const char *format, ...) __attribute__((format(printf, 1, 2)));
 void paginated_putch(uint8_t c);
 
 void set_color(uint8_t col);

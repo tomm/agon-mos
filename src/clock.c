@@ -22,7 +22,7 @@
 #include "globals.h"
 #include "uart.h"
 
-const char* rtc_days[7][2] = {
+const char *rtc_days[7][2] = {
 	{ "Sun", "Sunday" },
 	{ "Mon", "Monday" },
 	{ "Tue", "Tuesday" },
@@ -32,7 +32,7 @@ const char* rtc_days[7][2] = {
 	{ "Sat", "Saturday" },
 };
 
-const char* rtc_months[12][2] = {
+const char *rtc_months[12][2] = {
 	{ "Jan", "January" },
 	{ "Feb", "February" },
 	{ "Mar", "March" },
@@ -70,9 +70,9 @@ void rtc_update()
 // - buffer: Pointer to the RTC packet data
 // - t: Pointer to the time structure to populate
 //
-void rtc_unpack(uint8_t* buffer, vdp_time_t* t)
+void rtc_unpack(uint8_t *buffer, vdp_time_t *t)
 {
-	uint32_t d = *(uint32_t*)buffer;
+	uint32_t d = *(uint32_t *)buffer;
 
 	t->month = (d & 0x0000000F);	       // uint32_t month : 4; 		00000000 00000000 00000000 0000xxxx : 00 00 00 0F >> 0
 	t->day = (d & 0x000001F0) >> 4;	       // uint32_t day : 5;		00000000 00000000 0000000x xxxx0000 : 00 00 01 F0 >> 4
@@ -87,7 +87,7 @@ void rtc_unpack(uint8_t* buffer, vdp_time_t* t)
 
 // Format a date/time string
 //
-void rtc_formatDateTime(char* buffer, vdp_time_t* t)
+void rtc_formatDateTime(char *buffer, vdp_time_t *t)
 {
 	sprintf(buffer, "%s, %02d/%02d/%4d %02d:%02d:%02d", rtc_days[t->dayOfWeek][0], t->day, t->month + 1, t->year, t->hour, t->minute, t->second);
 }

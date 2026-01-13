@@ -172,8 +172,8 @@ typedef struct {
 void init_UART0();
 void init_UART1();
 
-uint8_t open_UART0(UART* pUART);
-uint8_t open_UART1(UART* pUART);
+uint8_t open_UART0(UART *pUART);
+uint8_t open_UART1(UART *pUART);
 
 void close_UART1();
 

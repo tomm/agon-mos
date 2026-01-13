@@ -51,7 +51,7 @@
 #include "uart.h"
 #include "umm_malloc.h"
 
-extern void* set_vector(unsigned int vector, void (*handler)(void));
+extern void *set_vector(unsigned int vector, void (*handler)(void));
 
 extern void vblank_handler(void);
 extern void uart0_handler(void);
@@ -144,7 +144,7 @@ int main(void)
 		putch(12);
 	}
 
-	umm_init_heap((void*)__heapbot, HEAP_LEN);
+	umm_init_heap((void *)__heapbot, HEAP_LEN);
 
 	scrcolours = 0;
 	active_console->get_mode_information();

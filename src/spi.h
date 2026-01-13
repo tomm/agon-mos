@@ -18,7 +18,7 @@ void init_spi();
 
 uint8_t spi_transfer(uint8_t d);
 uint8_t spi_read_one(void);
-void spi_read(char* buf, unsigned int len);
-void spi_write(char* buf, unsigned int len);
+void spi_read(char *buf, unsigned int len);
+void spi_write(char *buf, unsigned int len);
 
 #endif /* SPI_H */

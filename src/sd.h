@@ -16,8 +16,8 @@
 #define SD_ERROR 1
 #define SD_READY 0
 
-uint8_t SD_readBlocks(DWORD addr, uint8_t* buf, WORD count);
-uint8_t SD_writeBlocks(DWORD addr, const uint8_t* buf, WORD count);
+uint8_t SD_readBlocks(DWORD addr, uint8_t *buf, WORD count);
+uint8_t SD_writeBlocks(DWORD addr, const uint8_t *buf, WORD count);
 
 uint8_t SD_init();
 

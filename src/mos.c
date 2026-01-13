@@ -67,15 +67,15 @@
 
 char cmd[256];							     // Array for the command line handler
 
-extern void* set_vector(unsigned int vector, void (*handler)(void)); // In vectors16.asm
+extern void *set_vector(unsigned int vector, void (*handler)(void)); // In vectors16.asm
 
-extern int exec16(uint24_t addr, char* params);			     // In misc.asm
-extern int exec24(uint24_t addr, char* params);			     // In misc.asm
+extern int exec16(uint24_t addr, char *params);			     // In misc.asm
+extern int exec24(uint24_t addr, char *params);			     // In misc.asm
 
 extern uint8_t rtc;						     // In globals.asm
 
 static FATFS fs;						     // Handle for the file system
-static char* mos_strtok_ptr;					     // Pointer for current position in string tokeniser
+static char *mos_strtok_ptr;					     // Pointer for current position in string tokeniser
 
 TCHAR cwd[256];							     // Hold current working directory.
 bool sdcardDelay = false;
@@ -134,7 +134,7 @@ static t_mosCommand mosCommands[] = {
 
 // Array of file errors; mapped by index to the error numbers returned by FatFS
 //
-static char* mos_errors[] = {
+static char *mos_errors[] = {
 	"OK",
 	"Error accessing SD card",
 	"Assertion failed",
@@ -165,7 +165,7 @@ static char* mos_errors[] = {
 	"Invalid parameter",
 };
 
-#define mos_errors_count (sizeof(mos_errors) / sizeof(char*))
+#define mos_errors_count (sizeof(mos_errors) / sizeof(char *))
 
 // Output a file error
 // Parameters:
@@ -200,7 +200,7 @@ uint8_t mos_getkey()
 // Returns:
 // - The keycode (ESC or CR)
 //
-uint24_t mos_input(char* buffer, int bufferLength)
+uint24_t mos_input(char *buffer, int bufferLength)
 {
 	int24_t retval;
 	uint8_t oldTextFg = active_console->get_fg_color_index();
@@ -218,10 +218,10 @@ uint24_t mos_input(char* buffer, int bufferLength)
 // Returns:
 // - Function pointer, or 0 if command not found
 //
-t_mosCommand* mos_getCommand(char* ptr)
+t_mosCommand *mos_getCommand(char *ptr)
 {
 	int i;
-	t_mosCommand* cmd;
+	t_mosCommand *cmd;
 	for (i = 0; i < mosCommands_count; i++) {
 		cmd = &mosCommands[i];
 		if (mos_cmp(cmd->name, ptr) == 0) {
@@ -237,7 +237,7 @@ t_mosCommand* mos_getCommand(char* ptr)
 // - p1: The command to be compared against
 // - p2: The inputted command
 //
-bool mos_cmp(const char* p1, const char* p2)
+bool mos_cmp(const char *p1, const char *p2)
 {
 	char c1;
 	char c2;
@@ -261,9 +261,9 @@ bool mos_cmp(const char* p1, const char* p2)
 // Returns:
 // - s: Pointer to the start of the new string
 //
-char* mos_trim(char* s)
+char *mos_trim(char *s)
 {
-	char* ptr;
+	char *ptr;
 
 	if (!s) {			   // Return NULL if a null string is passed
 		return NULL;
@@ -290,14 +290,14 @@ char* mos_trim(char* s)
 // Returns:
 // - Pointer to tokenised string
 //
-char* mos_strtok(char* s1, char* s2)
+char *mos_strtok(char *s1, char *s2)
 {
 	return mos_strtok_r(s1, s2, &mos_strtok_ptr);
 }
 
-char* mos_strtok_r(char* s1, const char* s2, char** ptr)
+char *mos_strtok_r(char *s1, const char *s2, char **ptr)
 {
-	char* end;
+	char *end;
 
 	if (s1 == NULL) {
 		s1 = *ptr;
@@ -336,10 +336,10 @@ char* mos_strtok_r(char* s1, const char* s2, char** ptr)
 // Returns:
 // - true if the function succeeded, otherwise false
 //
-bool mos_parseNumber(char* ptr, uint24_t* p_Value)
+bool mos_parseNumber(char *ptr, uint24_t *p_Value)
 {
-	char* p = ptr;
-	char* e;
+	char *p = ptr;
+	char *e;
 	int base = 10;
 	long value;
 
@@ -370,9 +370,9 @@ bool mos_parseNumber(char* ptr, uint24_t* p_Value)
 // Returns:
 // - true if the function succeeded, otherwise false
 //
-bool mos_parseString(char* ptr, char** p_Value)
+bool mos_parseString(char *ptr, char **p_Value)
 {
-	char* p = ptr;
+	char *p = ptr;
 
 	p = mos_strtok(p, " ");
 	if (p == NULL) {
@@ -384,7 +384,7 @@ bool mos_parseString(char* ptr, char** p_Value)
 
 int mos_runBin(uint24_t addr)
 {
-	uint8_t mode = mos_execMode((uint8_t*)addr);
+	uint8_t mode = mos_execMode((uint8_t *)addr);
 	switch (mode) {
 	case 0:	 // Z80 mode
 		return exec16(addr, mos_strtok_ptr);
@@ -404,14 +404,14 @@ int mos_runBin(uint24_t addr)
 // Returns:
 // - MOS error code
 //
-int mos_exec(char* buffer, bool in_mos)
+int mos_exec(char *buffer, bool in_mos)
 {
-	char* ptr;
+	char *ptr;
 	int fr = 0;
-	int (*func)(char* ptr);
+	int (*func)(char *ptr);
 	char path[256];
 	uint8_t mode;
-	t_mosCommand* cmd;
+	t_mosCommand *cmd;
 
 	ptr = mos_trim(buffer);
 	if (ptr != NULL && *ptr == '#') {
@@ -471,7 +471,7 @@ int mos_exec(char* buffer, bool in_mos)
 // - 0: Z80 mode
 // - 1: ADL mode
 //
-uint8_t mos_execMode(uint8_t* ptr)
+uint8_t mos_execMode(uint8_t *ptr)
 {
 	if (
 	    *(ptr + 0x40) == 'M' && *(ptr + 0x41) == 'O' && *(ptr + 0x42) == 'S') {
@@ -480,7 +480,7 @@ uint8_t mos_execMode(uint8_t* ptr)
 	return 0xFF;
 }
 
-int mos_cmdDISC(char* ptr)
+int mos_cmdDISC(char *ptr)
 {
 	sdcardDelay = true;
 	return 0;
@@ -492,10 +492,10 @@ int mos_cmdDISC(char* ptr)
 // Returns:
 // - MOS error code
 //
-int mos_cmdDIR(char* ptr)
+int mos_cmdDIR(char *ptr)
 {
 	bool longListing = false;
-	char* path;
+	char *path;
 
 	for (;;) {
 		if (!mos_parseString(NULL, &path)) {
@@ -523,10 +523,10 @@ static int xdigit_to_int(char digit)
 
 // PRINTF command
 //
-int mos_cmdPRINTF(char* ptr)
+int mos_cmdPRINTF(char *ptr)
 {
 	int c;
-	const char* p = mos_strtok_ptr;
+	const char *p = mos_strtok_ptr;
 
 	while (*p) {
 		switch (*p) {
@@ -582,10 +582,10 @@ int mos_cmdPRINTF(char* ptr)
 // Returns:
 // - MOS error code
 //
-int mos_cmdHOTKEY(char* ptr)
+int mos_cmdHOTKEY(char *ptr)
 {
 	uint24_t fn_number = 0;
-	char* hotkey_string;
+	char *hotkey_string;
 
 	if (!mos_parseNumber(NULL, &fn_number)) {
 		uint8_t key;
@@ -636,10 +636,10 @@ int mos_cmdHOTKEY(char* ptr)
 // Returns:
 // - MOS error code
 //
-int mos_cmdLOAD(char* ptr)
+int mos_cmdLOAD(char *ptr)
 {
 	FRESULT fr;
-	char* filename;
+	char *filename;
 	uint24_t addr;
 
 	if (
@@ -658,10 +658,10 @@ int mos_cmdLOAD(char* ptr)
 // Returns:
 // - MOS error code
 //
-int mos_cmdEXEC(char* ptr)
+int mos_cmdEXEC(char *ptr)
 {
 	FRESULT fr;
-	char* filename;
+	char *filename;
 	uint24_t addr;
 	char buf[256];
 
@@ -679,10 +679,10 @@ int mos_cmdEXEC(char* ptr)
 // Returns:
 // - MOS error code
 //
-int mos_cmdSAVE(char* ptr)
+int mos_cmdSAVE(char *ptr)
 {
 	FRESULT fr;
-	char* filename;
+	char *filename;
 	uint24_t addr;
 	uint24_t size;
 
@@ -700,17 +700,17 @@ int mos_cmdSAVE(char* ptr)
 // Returns:
 // - MOS error code
 //
-int mos_cmdDEL(char* ptr)
+int mos_cmdDEL(char *ptr)
 {
 	FRESULT fr;
 	DIR dir;
 	static FILINFO fno;
-	char* dirPath = NULL;
-	char* pattern = NULL;
+	char *dirPath = NULL;
+	char *pattern = NULL;
 	bool usePattern = false;
 	bool force = false;
-	char* filename;
-	char* lastSeparator;
+	char *filename;
+	char *lastSeparator;
 	char verify[7];
 
 	if (
@@ -768,7 +768,7 @@ int mos_cmdDEL(char* ptr)
 		fr = f_findfirst(&dir, &fno, dirPath, pattern);
 		while (fr == FR_OK && fno.fname[0] != '\0') {
 			size_t fullPathLen = strlen(dirPath) + strlen(fno.fname) + 2;
-			char* fullPath = umm_malloc(fullPathLen);
+			char *fullPath = umm_malloc(fullPathLen);
 			if (!fullPath) {
 				fr = FR_INT_ERR;
 				break;
@@ -825,14 +825,14 @@ cleanup:
 // Returns:
 // - MOS error code
 //
-int mos_cmdJMP(char* ptr)
+int mos_cmdJMP(char *ptr)
 {
 	uint24_t addr;
 	void (*dest)(void) = 0;
 	if (!mos_parseNumber(NULL, &addr)) {
 		return FR_INVALID_PARAMETER;
 	};
-	dest = (void*)addr;
+	dest = (void *)addr;
 	dest();
 	kbuf_clear();
 	return 0;
@@ -844,7 +844,7 @@ int mos_cmdJMP(char* ptr)
 // Returns:
 // - MOS error code
 //
-int mos_cmdRUN(char* ptr)
+int mos_cmdRUN(char *ptr)
 {
 	uint24_t addr;
 
@@ -860,9 +860,9 @@ int mos_cmdRUN(char* ptr)
 // Returns:
 // - MOS error code
 //
-int mos_cmdCD(char* ptr)
+int mos_cmdCD(char *ptr)
 {
-	char* path;
+	char *path;
 
 	FRESULT fr;
 
@@ -881,11 +881,11 @@ int mos_cmdCD(char* ptr)
 // Returns:
 // - MOS error code
 //
-int mos_cmdREN(char* ptr)
+int mos_cmdREN(char *ptr)
 {
 	FRESULT fr;
-	char* filename1;
-	char* filename2;
+	char *filename1;
+	char *filename2;
 
 	if (
 	    !mos_parseString(NULL, &filename1) || !mos_parseString(NULL, &filename2)) {
@@ -901,11 +901,11 @@ int mos_cmdREN(char* ptr)
 // Returns:
 // - MOS error code
 //
-int mos_cmdCOPY(char* ptr)
+int mos_cmdCOPY(char *ptr)
 {
 	FRESULT fr;
-	char* filename1;
-	char* filename2;
+	char *filename1;
+	char *filename2;
 
 	if (
 	    !mos_parseString(NULL, &filename1) || !mos_parseString(NULL, &filename2)) {
@@ -921,9 +921,9 @@ int mos_cmdCOPY(char* ptr)
 // Returns:
 // - MOS error code
 //
-int mos_cmdMKDIR(char* ptr)
+int mos_cmdMKDIR(char *ptr)
 {
-	char* filename;
+	char *filename;
 
 	FRESULT fr;
 
@@ -941,9 +941,9 @@ int mos_cmdMKDIR(char* ptr)
 // Returns:
 // - MOS error code
 //
-int mos_cmdSET(char* ptr)
+int mos_cmdSET(char *ptr)
 {
-	char* command;
+	char *command;
 	uint24_t value;
 
 	if (
@@ -973,15 +973,15 @@ int mos_cmdSET(char* ptr)
 // Returns:
 // - MOS error code
 //
-int mos_cmdVDU(char* ptr)
+int mos_cmdVDU(char *ptr)
 {
-	char* value_str;
+	char *value_str;
 	uint24_t value = 0;
 
 	while (mos_parseString(NULL, &value_str)) {
 		uint8_t is_word = 0;
 		uint8_t base = 10;
-		char* endPtr;
+		char *endPtr;
 		size_t len = strlen(value_str);
 
 		// Strip semicolon notation and set as word
@@ -1035,7 +1035,7 @@ int mos_cmdVDU(char* ptr)
 // Returns:
 // - 0
 //
-int mos_cmdTIME(char* ptr)
+int mos_cmdTIME(char *ptr)
 {
 	uint24_t yr, mo, da, ho, mi, se;
 	char buffer[64];
@@ -1071,7 +1071,7 @@ extern uint8_t sysvars[];
 // Returns:
 // - MOS error code
 //
-int mos_cmdMEM(char* ptr)
+int mos_cmdMEM(char *ptr)
 {
 	int try_len = HEAP_LEN;
 
@@ -1091,7 +1091,7 @@ int mos_cmdMEM(char* ptr)
 
 	// find largest kmalloc contiguous region
 	for (; try_len > 0; try_len -= 8) {
-		void* p = umm_malloc(try_len);
+		void *p = umm_malloc(try_len);
 		if (p) {
 			umm_free(p);
 			break;
@@ -1105,7 +1105,7 @@ int mos_cmdMEM(char* ptr)
 	return 0;
 }
 
-int mos_cmdMEMDUMP(char* ptr)
+int mos_cmdMEMDUMP(char *ptr)
 {
 	uint24_t addr, len;
 	if (!mos_parseNumber(NULL, &addr)) {
@@ -1123,12 +1123,12 @@ int mos_cmdMEMDUMP(char* ptr)
 		paginated_printf("%06x:", addr + i);
 		for (int c = 0; c < width; c++) {
 			if ((c & 3) == 0) putch(' ');
-			paginated_printf("%02x", *(uint8_t*)(addr + i + c));
+			paginated_printf("%02x", *(uint8_t *)(addr + i + c));
 		}
 		putch(' ');
 		for (int c = 0; c < width; c++) {
 			putch(27);
-			putch(*(uint8_t*)(addr + i + c));
+			putch(*(uint8_t *)(addr + i + c));
 		}
 		paginated_printf("\r\n");
 		if (paginated_exit) break;
@@ -1143,7 +1143,7 @@ int mos_cmdMEMDUMP(char* ptr)
 // Returns:
 // - MOS error code
 //
-int mos_cmdCREDITS(char* ptr)
+int mos_cmdCREDITS(char *ptr)
 {
 	mos_bootmsg();
 	printf("Agon Quark MOS (c) 2022 Dean Belfield\n\r");
@@ -1160,10 +1160,10 @@ int mos_cmdCREDITS(char* ptr)
 // Returns:
 // - MOS error code
 //
-int mos_cmdTYPE(char* ptr)
+int mos_cmdTYPE(char *ptr)
 {
 	FRESULT fr;
-	char* filename;
+	char *filename;
 
 	if (!mos_parseString(NULL, &filename))
 		return FR_INVALID_PARAMETER;
@@ -1178,7 +1178,7 @@ int mos_cmdTYPE(char* ptr)
 // Returns:
 // - MOS error code
 //
-int mos_cmdCLS(char* ptr)
+int mos_cmdCLS(char *ptr)
 {
 	putch(12);
 	return 0;
@@ -1190,7 +1190,7 @@ int mos_cmdCLS(char* ptr)
 // Returns:
 // - MOS error code
 //
-int mos_cmdMOUNT(char* ptr)
+int mos_cmdMOUNT(char *ptr)
 {
 	int fr;
 
@@ -1201,7 +1201,7 @@ int mos_cmdMOUNT(char* ptr)
 	return 0;
 }
 
-static void printCommandInfo(t_mosCommand* cmd, bool full)
+static void printCommandInfo(t_mosCommand *cmd, bool full)
 {
 	int aliases = 0;
 	int i;
@@ -1247,10 +1247,10 @@ static void printCommandInfo(t_mosCommand* cmd, bool full)
 // Returns:
 // -  0: Success
 //
-int mos_cmdHELP(char* ptr)
+int mos_cmdHELP(char *ptr)
 {
 	int i;
-	char* cmd;
+	char *cmd;
 
 	bool hasCmd = mos_parseString(NULL, &cmd);
 	if (!hasCmd) {
@@ -1305,7 +1305,7 @@ int mos_cmdHELP(char* ptr)
 // Returns:
 // - FatFS return code
 //
-uint24_t mos_LOAD(char* filename, uint24_t address, uint24_t size)
+uint24_t mos_LOAD(char *filename, uint24_t address, uint24_t size)
 {
 	FRESULT fr;
 	FIL fil;
@@ -1326,7 +1326,7 @@ uint24_t mos_LOAD(char* filename, uint24_t address, uint24_t size)
 		if ((address <= MOS_externLastRAMaddress) && ((address + size) > (int)__MOS_systemAddress)) {
 			fr = MOS_OVERLAPPING_SYSTEM;
 		} else {
-			fr = f_read(&fil, (void*)address, size, &br);
+			fr = f_read(&fil, (void *)address, size, &br);
 		}
 	}
 	f_close(&fil);
@@ -1341,7 +1341,7 @@ uint24_t mos_LOAD(char* filename, uint24_t address, uint24_t size)
 // Returns:
 // - FatFS return code
 //
-uint24_t mos_SAVE(char* filename, uint24_t address, uint24_t size)
+uint24_t mos_SAVE(char *filename, uint24_t address, uint24_t size)
 {
 	FRESULT fr;
 	FIL fil;
@@ -1349,7 +1349,7 @@ uint24_t mos_SAVE(char* filename, uint24_t address, uint24_t size)
 
 	fr = f_open(&fil, filename, FA_WRITE | FA_CREATE_NEW);
 	if (fr == FR_OK) {
-		fr = f_write(&fil, (void*)address, size, &br);
+		fr = f_write(&fil, (void *)address, size, &br);
 	}
 	f_close(&fil);
 	return fr;
@@ -1361,7 +1361,7 @@ uint24_t mos_SAVE(char* filename, uint24_t address, uint24_t size)
 // Returns:
 // - FatFS return code
 //
-uint24_t mos_TYPE(char* filename)
+uint24_t mos_TYPE(char *filename)
 {
 	FRESULT fr;
 	FIL fil;
@@ -1379,7 +1379,7 @@ uint24_t mos_TYPE(char* filename)
 	paginated_start(true);
 
 	while (1) {
-		fr = f_read(&fil, (void*)buf, sizeof buf, &br);
+		fr = f_read(&fil, (void *)buf, sizeof buf, &br);
 		if (br == 0)
 			break;
 		paginated_write(buf, br);
@@ -1396,7 +1396,7 @@ uint24_t mos_TYPE(char* filename)
 // Returns:
 // - FatFS return code
 //
-uint24_t mos_CD(char* path)
+uint24_t mos_CD(char *path)
 {
 	FRESULT fr;
 
@@ -1405,7 +1405,7 @@ uint24_t mos_CD(char* path)
 }
 
 // Check if a path is a directory
-bool isDirectory(char* path)
+bool isDirectory(char *path)
 {
 	FILINFO fil;
 	FRESULT fr;
@@ -1420,7 +1420,7 @@ bool isDirectory(char* path)
 	return (fr == FR_OK) && fil.fname[0] && (fil.fattrib & AM_DIR);
 }
 
-static uint24_t get_num_dirents(const char* path, int* cnt)
+static uint24_t get_num_dirents(const char *path, int *cnt)
 {
 	FRESULT fr;
 	DIR dir;
@@ -1453,10 +1453,10 @@ typedef struct SmallFilInfo {
 	WORD fdate;	 /* Modified date */
 	WORD ftime;	 /* Modified time */
 	uint8_t fattrib; /* File attribute */
-	char* fname;	 /* umm_malloc'ed */
+	char *fname;	 /* umm_malloc'ed */
 } SmallFilInfo;
 
-static int cmp_filinfo(const SmallFilInfo* a, const SmallFilInfo* b)
+static int cmp_filinfo(const SmallFilInfo *a, const SmallFilInfo *b)
 {
 	if ((a->fattrib & AM_DIR) == (b->fattrib & AM_DIR)) {
 		return strcasecmp(a->fname, b->fname);
@@ -1471,12 +1471,12 @@ static int cmp_filinfo(const SmallFilInfo* a, const SmallFilInfo* b)
 // Returns:
 // - FatFS return code
 //
-uint24_t mos_DIR_API(char* inputPath)
+uint24_t mos_DIR_API(char *inputPath)
 {
 	return mos_DIR(inputPath, true);
 }
 
-uint24_t mos_DIRFallback(char* path, bool longListing, bool hideVolumeInfo)
+uint24_t mos_DIRFallback(char *path, bool longListing, bool hideVolumeInfo)
 {
 	FRESULT fr;
 	DIR dir;
@@ -1536,7 +1536,7 @@ uint24_t mos_DIRFallback(char* path, bool longListing, bool hideVolumeInfo)
 // Returns:
 // - FatFS return code
 //
-uint24_t mos_DIR(char* inputPath, bool longListing)
+uint24_t mos_DIR(char *inputPath, bool longListing)
 {
 	FRESULT fr;
 	DIR dir;
@@ -1593,7 +1593,7 @@ uint24_t mos_DIR(char* inputPath, bool longListing)
 			usePattern = true;
 		}
 	} else {
-		char* lastSeparator = strrchr(inputPath, '/');
+		char *lastSeparator = strrchr(inputPath, '/');
 		if (lastSeparator != NULL && *(lastSeparator + 1) != '\0') {
 			dirPath = mos_strndup(inputPath, lastSeparator - inputPath + 1);
 			if (!dirPath) {
@@ -1701,7 +1701,7 @@ uint24_t mos_DIR(char* inputPath, bool longListing)
 		int maxCols = MAX(1, scrcols / longestFilename);
 
 		num_dirents = fno_num;
-		qsort(fnos, num_dirents, sizeof(SmallFilInfo), (int (*)(const void*, const void*)) & cmp_filinfo);
+		qsort(fnos, num_dirents, sizeof(SmallFilInfo), (int (*)(const void *, const void *)) & cmp_filinfo);
 		fno_num = 0;
 
 		for (; fno_num < num_dirents; fno_num++) {
@@ -1756,7 +1756,7 @@ cleanup:
 // Returns:
 // - FatFS return code
 //
-uint24_t mos_DEL(char* filename)
+uint24_t mos_DEL(char *filename)
 {
 	FRESULT fr;
 
@@ -1771,7 +1771,7 @@ uint24_t mos_DEL(char* filename)
 // Returns:
 // - FatFS return code
 //
-uint24_t mos_REN_API(char* srcPath, char* dstPath)
+uint24_t mos_REN_API(char *srcPath, char *dstPath)
 {
 	return mos_REN(srcPath, dstPath, false);
 }
@@ -1783,7 +1783,7 @@ uint24_t mos_REN_API(char* srcPath, char* dstPath)
 // Returns:
 // - FatFS return code
 //
-uint24_t mos_REN(char* srcPath, char* dstPath, bool verbose)
+uint24_t mos_REN(char *srcPath, char *dstPath, bool verbose)
 {
 	FRESULT fr;
 	DIR dir;
@@ -1889,7 +1889,7 @@ cleanup:
 // Returns:
 // - FatFS return code
 //
-uint24_t mos_COPY_API(char* srcPath, char* dstPath)
+uint24_t mos_COPY_API(char *srcPath, char *dstPath)
 {
 	return mos_COPY(srcPath, dstPath, false);
 }
@@ -1902,7 +1902,7 @@ uint24_t mos_COPY_API(char* srcPath, char* dstPath)
 // Returns:
 // - FatFS return code
 //
-uint24_t mos_COPY(char* srcPath, char* dstPath, bool verbose)
+uint24_t mos_COPY(char *srcPath, char *dstPath, bool verbose)
 {
 	FRESULT fr;
 	FIL fsrc, fdst;
@@ -2043,7 +2043,7 @@ cleanup:
 // Returns:
 // - FatFS return code
 //
-uint24_t mos_MKDIR(char* filename)
+uint24_t mos_MKDIR(char *filename)
 {
 	FRESULT fr;
 
@@ -2059,7 +2059,7 @@ uint24_t mos_MKDIR(char* filename)
 // Returns:
 // - FatFS return code (of the last command)
 //
-uint24_t mos_EXEC(char* filename, char* buffer, uint24_t size)
+uint24_t mos_EXEC(char *filename, char *buffer, uint24_t size)
 {
 	FRESULT fr;
 	FIL fil;
@@ -2088,7 +2088,7 @@ uint24_t mos_EXEC(char* filename, char* buffer, uint24_t size)
 // Returns:
 // - File handle, or 0 if the file cannot be opened
 //
-uint24_t mos_FOPEN(char* filename, uint8_t mode)
+uint24_t mos_FOPEN(char *filename, uint8_t mode)
 {
 	FRESULT fr;
 	int i;
@@ -2143,11 +2143,11 @@ uint24_t mos_FCLOSE(uint8_t fh)
 uint24_t mos_FGETC(uint8_t fh)
 {
 	FRESULT fr;
-	FIL* fo;
+	FIL *fo;
 	UINT br;
 	char c;
 
-	fo = (FIL*)mos_GETFIL(fh);
+	fo = (FIL *)mos_GETFIL(fh);
 	if (fo > 0) {
 		fr = f_read(fo, &c, 1, &br);
 		if (fr == FR_OK) {
@@ -2164,7 +2164,7 @@ uint24_t mos_FGETC(uint8_t fh)
 //
 void mos_FPUTC(uint8_t fh, char c)
 {
-	FIL* fo = (FIL*)mos_GETFIL(fh);
+	FIL *fo = (FIL *)mos_GETFIL(fh);
 
 	if (fo > 0) {
 		f_putc(c, fo);
@@ -2182,11 +2182,11 @@ void mos_FPUTC(uint8_t fh, char c)
 uint24_t mos_FREAD(uint8_t fh, uint24_t buffer, uint24_t btr)
 {
 	FRESULT fr;
-	FIL* fo = (FIL*)mos_GETFIL(fh);
+	FIL *fo = (FIL *)mos_GETFIL(fh);
 	UINT br = 0;
 
 	if (fo > 0) {
-		fr = f_read(fo, (void*)buffer, btr, &br);
+		fr = f_read(fo, (void *)buffer, btr, &br);
 		if (fr == FR_OK) {
 			return br;
 		}
@@ -2205,11 +2205,11 @@ uint24_t mos_FREAD(uint8_t fh, uint24_t buffer, uint24_t btr)
 uint24_t mos_FWRITE(uint8_t fh, uint24_t buffer, uint24_t btw)
 {
 	FRESULT fr;
-	FIL* fo = (FIL*)mos_GETFIL(fh);
+	FIL *fo = (FIL *)mos_GETFIL(fh);
 	UINT bw = 0;
 
 	if (fo > 0) {
-		fr = f_write(fo, (const void*)buffer, btw, &bw);
+		fr = f_write(fo, (const void *)buffer, btw, &bw);
 		if (fr == FR_OK) {
 			return bw;
 		}
@@ -2225,7 +2225,7 @@ uint24_t mos_FWRITE(uint8_t fh, uint24_t buffer, uint24_t btw)
 //
 uint8_t mos_FLSEEK(uint8_t fh, uint32_t offset)
 {
-	FIL* fo = (FIL*)mos_GETFIL(fh);
+	FIL *fo = (FIL *)mos_GETFIL(fh);
 
 	if (fo > 0) {
 		return f_lseek(fo, offset);
@@ -2241,7 +2241,7 @@ uint8_t mos_FLSEEK(uint8_t fh, uint32_t offset)
 //
 uint8_t mos_FEOF(uint8_t fh)
 {
-	FIL* fo = (FIL*)mos_GETFIL(fh);
+	FIL *fo = (FIL *)mos_GETFIL(fh);
 
 	if (fo > 0) {
 		return fat_EOF(fo);
@@ -2257,7 +2257,7 @@ uint8_t mos_FEOF(uint8_t fh)
 //
 void mos_GETERROR(uint8_t errno, uint24_t address, uint24_t size)
 {
-	strncpy((char*)address, mos_errors[errno], size - 1);
+	strncpy((char *)address, mos_errors[errno], size - 1);
 }
 
 // OSCLI
@@ -2266,7 +2266,7 @@ void mos_GETERROR(uint8_t errno, uint24_t address, uint24_t size)
 // Returns:
 // - MOS error code
 //
-uint24_t mos_OSCLI(char* cmd)
+uint24_t mos_OSCLI(char *cmd)
 {
 	uint24_t fr;
 	fr = mos_exec(cmd, false);
@@ -2285,9 +2285,9 @@ uint8_t mos_GETRTC(uint24_t address)
 
 	rtc_update();
 	rtc_unpack(&rtc, &t);
-	rtc_formatDateTime((char*)address, &t);
+	rtc_formatDateTime((char *)address, &t);
 
-	return strlen((char*)address);
+	return strlen((char *)address);
 }
 
 // Set the RTC
@@ -2298,7 +2298,7 @@ uint8_t mos_GETRTC(uint24_t address)
 //
 void mos_SETRTC(uint24_t address)
 {
-	uint8_t* p = (uint8_t*)address;
+	uint8_t *p = (uint8_t *)address;
 
 	putch(23); // Set the ESP32 time
 	putch(0);
@@ -2322,7 +2322,7 @@ void mos_SETRTC(uint24_t address)
 //
 uint24_t mos_SETINTVECTOR(uint8_t vector, uint24_t address)
 {
-	void (*handler)(void) = (void*)address;
+	void (*handler)(void) = (void *)address;
 #if DEBUG > 0
 	printf("@mos_SETINTVECTOR: %02X,%06X\n\r", vector, address);
 #endif
@@ -2337,7 +2337,7 @@ uint24_t mos_SETINTVECTOR(uint8_t vector, uint24_t address)
 //
 uint24_t mos_GETFIL(uint8_t fh)
 {
-	t_mosFileObject* mfo;
+	t_mosFileObject *mfo;
 
 	if (fh > 0 && fh <= MOS_maxOpenFiles) {
 		mfo = &mosFileObjects[fh - 1];
@@ -2354,7 +2354,7 @@ uint24_t mos_GETFIL(uint8_t fh)
 // Returns:
 // - 1 if EOF, otherwise 0
 //
-uint8_t fat_EOF(FIL* fp)
+uint8_t fat_EOF(FIL *fp)
 {
 	if (f_eof(fp) != 0) {
 		return 1;
@@ -2379,7 +2379,7 @@ int mos_mount(void)
 
 extern void hxload_vdp(void);
 
-int mos_cmdSIDELOAD(char* p)
+int mos_cmdSIDELOAD(char *p)
 {
 	printf("Waiting for VDP data...\r\n");
 	hxload_vdp();
@@ -2387,9 +2387,9 @@ int mos_cmdSIDELOAD(char* p)
 	return 0;
 }
 
-int mos_cmdFBMODE(char* p)
+int mos_cmdFBMODE(char *p)
 {
-	char* value_str;
+	char *value_str;
 	if (fb_driverversion() == 0) {
 		printf("EZ80 GPIO video driver not found\r\n");
 		return 0;
@@ -2400,7 +2400,7 @@ int mos_cmdFBMODE(char* p)
 		printf("Available modes:\r\n");
 
 		for (int mode = 0;; mode++) {
-			struct fbmodeinfo_t* minfo = fb_lookupmode(mode);
+			struct fbmodeinfo_t *minfo = fb_lookupmode(mode);
 			if (minfo == NULL) break;
 			printf("Mode %d: %dx%d", mode, minfo->width, minfo->height);
 			if (minfo->flags & FBMODE_FLAG_15KHZ) printf(" 15KHz");
@@ -2429,7 +2429,7 @@ int mos_cmdFBMODE(char* p)
 	}
 }
 
-static void* fb_scanline_offsets = NULL;
+static void *fb_scanline_offsets = NULL;
 
 uint24_t mos_FBMODE(int req_mode)
 {
@@ -2445,18 +2445,18 @@ uint24_t mos_FBMODE(int req_mode)
 
 	int set_mode = req_mode & 0x100 ? fb_mode : req_mode;
 
-	struct fbmodeinfo_t* minfo = fb_lookupmode(set_mode);
+	struct fbmodeinfo_t *minfo = fb_lookupmode(set_mode);
 
 	if (minfo == 0) {
 		return MOS_INVALID_PARAMETER;
 	}
 
-	void* fb_base = (void*)((int)__MOS_systemAddress - SPL_STACK_SIZE - minfo->width * minfo->height);
+	void *fb_base = (void *)((int)__MOS_systemAddress - SPL_STACK_SIZE - minfo->width * minfo->height);
 
 	if (fb_scanline_offsets) {
 		umm_free(fb_scanline_offsets);
 	}
-	fb_scanline_offsets = umm_malloc(sizeof(void*) * minfo->height * minfo->scan_multiplier);
+	fb_scanline_offsets = umm_malloc(sizeof(void *) * minfo->height * minfo->scan_multiplier);
 
 	return start_fbterm(set_mode, fb_base, fb_scanline_offsets);
 }

@@ -10,12 +10,12 @@
 
 static inline uint8_t io_in(int addr)
 {
-	return *((volatile uint8_t __attribute__((address_space(3)))*)addr);
+	return *((volatile uint8_t __attribute__((address_space(3))) *)addr);
 }
 
 static inline void io_out(int addr, uint8_t value)
 {
-	*((volatile uint8_t __attribute__((address_space(3)))*)addr) = value;
+	*((volatile uint8_t __attribute__((address_space(3))) *)addr) = value;
 }
 
 static inline void io_setreg(int addr, uint8_t bits)

@@ -32,7 +32,7 @@ typedef struct {
 void init_rtc(); // In rtc.asm
 
 void rtc_update();
-void rtc_unpack(uint8_t* buffer, vdp_time_t* t);
-void rtc_formatDateTime(char* buffer, vdp_time_t* t);
+void rtc_unpack(uint8_t *buffer, vdp_time_t *t);
+void rtc_formatDateTime(char *buffer, vdp_time_t *t);
 
 #endif		 /* RTC_H */

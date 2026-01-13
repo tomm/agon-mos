@@ -33,9 +33,9 @@
 
 // Storage for the command history
 //
-static char* cmd_history[cmd_historyDepth];
+static char *cmd_history[cmd_historyDepth];
 
-char* hotkey_strings[12] = {};
+char *hotkey_strings[12] = {};
 
 // Move cursor left
 //
@@ -79,7 +79,7 @@ void doRightCursor()
 // Returns:
 // - true if the character was inserted, otherwise false
 //
-bool insertCharacter(char* buffer, char c, int insertPos, int len, int limit)
+bool insertCharacter(char *buffer, char c, int insertPos, int len, int limit)
 {
 	int i;
 	int count = 0;
@@ -109,7 +109,7 @@ bool insertCharacter(char* buffer, char c, int insertPos, int len, int limit)
 // Returns:
 // - true if the character was deleted, otherwise false
 //
-static bool deleteCharacter(char* buffer, int insertPos, int len)
+static bool deleteCharacter(char *buffer, int insertPos, int len)
 {
 	int i;
 	int count = 0;
@@ -128,7 +128,7 @@ static bool deleteCharacter(char* buffer, int insertPos, int len)
 	return 0;
 }
 
-static uint8_t deleteWord(char* buffer, int insertPos, int len)
+static uint8_t deleteWord(char *buffer, int insertPos, int len)
 {
 	uint8_t num_deleted = 0;
 	// First the trailing spaces
@@ -170,7 +170,7 @@ static int gotoEditLineEnd(int insertPos, int len)
 
 // remove current edit line
 //
-static void removeEditLine(char* buffer, int insertPos, int len)
+static void removeEditLine(char *buffer, int insertPos, int len)
 {
 	// goto start of line
 	insertPos = gotoEditLineStart(insertPos);
@@ -187,10 +187,10 @@ static void removeEditLine(char* buffer, int insertPos, int len)
 // Returns:
 // - 1 if the hotkey was handled, otherwise 0
 //
-static bool handleHotkey(uint8_t fkey, char* buffer, int bufferLength, int insertPos, int len)
+static bool handleHotkey(uint8_t fkey, char *buffer, int bufferLength, int insertPos, int len)
 {
 	if (hotkey_strings[fkey] != NULL) {
-		char* wildcardPos = strstr(hotkey_strings[fkey], "%s");
+		char *wildcardPos = strstr(hotkey_strings[fkey], "%s");
 
 		if (wildcardPos == NULL) { // No wildcard in the hotkey string
 			removeEditLine(buffer, insertPos, len);
@@ -200,7 +200,7 @@ static bool handleHotkey(uint8_t fkey, char* buffer, int bufferLength, int inser
 			uint8_t prefixLength = wildcardPos - hotkey_strings[fkey];
 			uint8_t replacementLength = strlen(buffer);
 			uint8_t suffixLength = strlen(wildcardPos + 2);
-			char* result;
+			char *result;
 
 			if (prefixLength + replacementLength + suffixLength + 1 >= bufferLength) {
 				// Exceeds max command length (256 chars)
@@ -232,22 +232,22 @@ static bool handleHotkey(uint8_t fkey, char* buffer, int bufferLength, int inser
 	return 0;
 }
 
-static void do_tab_complete(char* buffer, int* out_InsertPos, int* out_buflen)
+static void do_tab_complete(char *buffer, int *out_InsertPos, int *out_buflen)
 {
-	char* search_term = NULL;
-	char* path = NULL;
+	char *search_term = NULL;
+	char *path = NULL;
 
 	FRESULT fr;
 	DIR dj;
 	FILINFO fno;
-	t_mosCommand* cmd;
-	const char* searchTermStart;
-	const char* lastSpace = strrchr(buffer, ' ');
-	const char* lastSlash = strrchr(buffer, '/');
+	t_mosCommand *cmd;
+	const char *searchTermStart;
+	const char *lastSpace = strrchr(buffer, ' ');
+	const char *lastSlash = strrchr(buffer, '/');
 
 	if (lastSlash == NULL && lastSpace == NULL) { // Try commands first before fatfs completion
 
-		search_term = (char*)umm_malloc(strlen(buffer) + 6);
+		search_term = (char *)umm_malloc(strlen(buffer) + 6);
 		if (!search_term) {
 			// umm_malloc failed, so no tab completion for us today
 			return;
@@ -318,7 +318,7 @@ static void do_tab_complete(char* buffer, int* out_InsertPos, int* out_buflen)
 			pathLength = lastSlash - lastSpace;
 		}
 
-		path = (char*)umm_malloc(pathLength + 1);   // +1 for null terminator
+		path = (char *)umm_malloc(pathLength + 1);  // +1 for null terminator
 		if (path == NULL) {
 			return;
 		}
@@ -330,16 +330,16 @@ static void do_tab_complete(char* buffer, int* out_InsertPos, int* out_buflen)
 		if (lastSpace != NULL && lastSpace > lastSlash) {
 			searchTermStart = lastSpace + 1;
 		}
-		search_term = (char*)umm_malloc(strlen(searchTermStart) + 2); // +2 for '*' and null terminator
+		search_term = (char *)umm_malloc(strlen(searchTermStart) + 2); // +2 for '*' and null terminator
 	} else {
-		path = (char*)umm_malloc(1);
+		path = (char *)umm_malloc(1);
 		if (path == NULL) {
 			return;
 		}
-		path[0] = '\0';						      // Path is empty (current dir, essentially).
+		path[0] = '\0';						       // Path is empty (current dir, essentially).
 
 		searchTermStart = lastSpace ? lastSpace + 1 : buffer;
-		search_term = (char*)umm_malloc(strlen(searchTermStart) + 2); // +2 for '*' and null terminator
+		search_term = (char *)umm_malloc(strlen(searchTermStart) + 2); // +2 for '*' and null terminator
 	}
 
 	if (search_term == NULL) {
@@ -380,7 +380,7 @@ static void do_tab_complete(char* buffer, int* out_InsertPos, int* out_buflen)
 // Returns:
 // - The exit key pressed (ESC or CR)
 //
-uint24_t mos_EDITLINE(char* buffer, int bufferLength, uint8_t flags)
+uint24_t mos_EDITLINE(char *buffer, int bufferLength, uint8_t flags)
 {
 	bool clear = flags & 0x01;		// Clear the buffer on entry
 	bool enableTab = flags & 0x02;		// Enable tab completion (default off)
@@ -565,12 +565,12 @@ void editHistoryInit()
 	}
 }
 
-void editHistoryPush(char* buffer)
+void editHistoryPush(char *buffer)
 {
 	int len = strlen(buffer);
 
 	if (len > 0) { // If there is data in the buffer
-		char* newEntry = NULL;
+		char *newEntry = NULL;
 
 		// if the new entry is the same as the last entry, then don't save it
 		if (history_size > 0 && strcmp(buffer, cmd_history[history_size - 1]) == 0) {
@@ -597,7 +597,7 @@ void editHistoryPush(char* buffer)
 	}
 }
 
-bool editHistoryUp(char* buffer, int insertPos, int len, int limit)
+bool editHistoryUp(char *buffer, int insertPos, int len, int limit)
 {
 	int index = -1;
 	if (history_no > 0) {
@@ -610,7 +610,7 @@ bool editHistoryUp(char* buffer, int insertPos, int len, int limit)
 	return editHistorySet(buffer, insertPos, len, limit, index);
 }
 
-bool editHistoryDown(char* buffer, int insertPos, int len, int limit)
+bool editHistoryDown(char *buffer, int insertPos, int len, int limit)
 {
 	if (history_no < history_size) {
 		if (history_no == history_size - 1) {
@@ -624,7 +624,7 @@ bool editHistoryDown(char* buffer, int insertPos, int len, int limit)
 	return false;
 }
 
-bool editHistorySet(char* buffer, int insertPos, int len, int limit, int index)
+bool editHistorySet(char *buffer, int insertPos, int len, int limit, int index)
 {
 	if (index >= 0 && index < history_size) {
 		removeEditLine(buffer, insertPos, len);

@@ -12,7 +12,7 @@ static uint8_t quickrand(void)
 	return out;
 }
 
-static void rainbow_msg(char* msg)
+static void rainbow_msg(char *msg)
 {
 	uint8_t i = quickrand() & (scrcolours - 1);
 	if (strcmp(msg, "Rainbow") != 0) {

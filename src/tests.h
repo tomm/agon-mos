@@ -5,7 +5,7 @@
 
 #if DEBUG > 0
 
-extern int mos_cmdTEST(char* ptr);
+extern int mos_cmdTEST(char *ptr);
 
 #endif /* DEBUG */
 

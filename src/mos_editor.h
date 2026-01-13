@@ -15,14 +15,14 @@
 #define cmd_historyWidth 255
 #define cmd_historyDepth 16
 
-uint24_t mos_EDITLINE(char* filename, int bufferLength, uint8_t clear);
+uint24_t mos_EDITLINE(char *filename, int bufferLength, uint8_t clear);
 
 void editHistoryInit();
-void editHistoryPush(char* buffer);
-bool editHistoryUp(char* buffer, int insertPos, int len, int limit);
-bool editHistoryDown(char* buffer, int insertPos, int len, int limit);
-bool editHistorySet(char* buffer, int insertPos, int len, int limit, int index);
+void editHistoryPush(char *buffer);
+bool editHistoryUp(char *buffer, int insertPos, int len, int limit);
+bool editHistoryDown(char *buffer, int insertPos, int len, int limit);
+bool editHistorySet(char *buffer, int insertPos, int len, int limit, int index);
 
-extern char* hotkey_strings[12];
+extern char *hotkey_strings[12];
 
 #endif /* MOS_EDITOR_H */

@@ -120,14 +120,14 @@ void paginated_putch(uint8_t c)
  * Writes literal characters, not VDP control codes (only exception is \n)
  * Control codes will be escaped.
  */
-void paginated_write(const char* buf, int len)
+void paginated_write(const char *buf, int len)
 {
 	for (int i = 0; i < len && !paginated_exit; i++) {
 		paginated_putch(buf[i]);
 	}
 }
 
-void paginated_printf(const char* format, ...)
+void paginated_printf(const char *format, ...)
 {
 	va_list ap;
 	va_start(ap, format);

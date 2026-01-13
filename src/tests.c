@@ -9,12 +9,12 @@
 #define MG_MAX_ITEMS 64
 #define MG_ITERS 1000
 struct mg_item_t {
-	int* ptr;
+	int *ptr;
 	int num;
 };
 
 // fill the allocated region with its base pointer value
-static void malloc_grind_fill(struct mg_item_t* item)
+static void malloc_grind_fill(struct mg_item_t *item)
 {
 	int i;
 	for (i = 0; i < item->num; i++) {
@@ -22,7 +22,7 @@ static void malloc_grind_fill(struct mg_item_t* item)
 	}
 }
 
-static bool malloc_grind_validate(struct mg_item_t* item)
+static bool malloc_grind_validate(struct mg_item_t *item)
 {
 	int i;
 	for (i = 0; i < item->num; i++) {
@@ -55,7 +55,7 @@ static void malloc_grind()
 {
 	int iter, num, idx;
 	bool status = 1;
-	struct mg_item_t* items = umm_malloc(sizeof(struct mg_item_t) * MG_MAX_ITEMS);
+	struct mg_item_t *items = umm_malloc(sizeof(struct mg_item_t) * MG_MAX_ITEMS);
 
 	if (items == NULL) {
 		printf("Insufficient RAM for test\r\n");
@@ -102,7 +102,7 @@ cleanup:
 	}
 }
 
-int mos_cmdTEST(char* ptr)
+int mos_cmdTEST(char *ptr)
 {
 	init_rand();
 	malloc_grind();

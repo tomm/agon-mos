@@ -100,7 +100,7 @@ struct console_driver_t fb_console = {
 	.get_bg_color_index = &fb_get_bg_color_index,
 };
 
-struct console_driver_t* active_console = &vdp_console;
+struct console_driver_t *active_console = &vdp_console;
 
 void console_enable_fb()
 {

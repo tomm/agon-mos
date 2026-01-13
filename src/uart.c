@@ -55,7 +55,7 @@ void init_UART1()
 // Parameters:
 // - pUART: Structure containing the initialisation data
 //
-uint8_t open_UART0(UART* pUART)
+uint8_t open_UART0(UART *pUART)
 {
 	uint32_t mc = MASTERCLOCK;				      // UART baud rate calculation
 	uint32_t cb = CLOCK_DIVISOR_16 * (uint32_t)pUART->baudRate;   // split to avoid eZ80 maths overflow error
@@ -95,7 +95,7 @@ uint8_t open_UART0(UART* pUART)
 // Parameters:
 // - pUART: Structure containing the initialisation data
 //
-uint8_t open_UART1(UART* pUART)
+uint8_t open_UART1(UART *pUART)
 {
 	uint32_t mc = MASTERCLOCK;				      // UART baud rate calculation
 	uint32_t cb = CLOCK_DIVISOR_16 * (uint32_t)pUART->baudRate;   // split to avoid eZ80 maths overflow error
