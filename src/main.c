@@ -104,6 +104,23 @@ static void init_interrupts(void)
 	set_vector(I2C_IVECT, i2c_handler);	  // 0x1C
 }
 
+// Should never return
+void mainloop(void)
+{
+	// The main loop
+	//
+	while (1) {
+		if (mos_input(cmd, sizeof(cmd)) == 13) {
+			int err = mos_exec(cmd, true);
+			if (err > 0) {
+				mos_error(err);
+			}
+		} else {
+			printf("Escape\n\r");
+		}
+	}
+}
+
 // The main loop
 //
 int main(void)
@@ -171,18 +188,8 @@ int main(void)
 	}
 #endif									/* FEAT_FRAMEBUFFER */
 
-	// The main loop
-	//
-	while (1) {
-		if (mos_input(cmd, sizeof(cmd)) == 13) {
-			int err = mos_exec(cmd, true);
-			if (err > 0) {
-				mos_error(err);
-			}
-		} else {
-			printf("Escape\n\r");
-		}
-	}
+	// CLI input loop
+	mainloop();
 
 	// never reached -- and main can't return
 	return 0;

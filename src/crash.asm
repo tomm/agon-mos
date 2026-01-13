@@ -44,10 +44,15 @@ _on_crash:
 		jr z, 3f
 		cp 'R'
 		jr z, 3f
+		cp 'x'
+		jr z, 4f
+		cp 'X'
+		jr z, 4f
 		jr 2b
 
 		; restore everything and return to userspace
-	3:	pop af
+	3:	call _kbuf_clear
+		pop af
 		pop bc
 		pop de
 		pop hl
@@ -57,12 +62,17 @@ _on_crash:
 		; rst38 from ADL code. so rst.lil was not used, just rst
 		ret
 
+	4:	; 'x': Exit to mos
+		call _kbuf_clear
+		ld sp,__stack
+		jp _mainloop
+
 panic_msg:
 		.ascii "\x11\x81\x11\x10"
 		.ascii "!! RST $38 panic. Guru meditation:   !!\r\n"
 		.ascii "PC:%06x MB:%02x SPS:%04x SPL:%06x\r\n"
 		.ascii "AF:%06x BC:%06x DE:%06x HL:%06x\r\n"
 		.ascii "IX:%06x IY:%06x\r\n"
-		.ascii "!! [r] resume, [ctrl-alt-del] reboot !!\r\n"
+		.ascii "!! [r] resume, [x] exit, [ctrl-alt-del] reboot !!\r\n"
 		.ascii "\x11\x80\x11\x0f"
 		.db 0
