@@ -10,8 +10,6 @@
 #ifndef STRINGS_H
 #define STRINGS_H
 
-extern int strcasecmp(const char *s1, const char *s2);
-
 size_t mos_strnlen(const char *s, size_t maxlen);
 
 // Alternative to missing strdup() in ZDS libraries
@@ -19,5 +17,7 @@ char *mos_strdup(const char *s);
 
 // Alternative to missing strndup() in ZDS libraries
 char *mos_strndup(const char *s, size_t n);
+
+void strinsert(char *dest, const char *src, int insert_loc, int dest_maxlen);
 
 #endif // STRINGS_H

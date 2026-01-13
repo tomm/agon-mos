@@ -203,13 +203,32 @@ uint8_t mos_getkey()
 uint24_t mos_input(char *buffer, int bufferLength)
 {
 	int24_t retval;
+	mos_print_prompt();
+	retval = mos_EDITLINE(buffer, bufferLength, 3);
+	printf("\n\r");
+	return retval;
+}
+
+void mos_print_prompt(void)
+{
 	uint8_t oldTextFg = active_console->get_fg_color_index();
 	set_color(get_primary_color());
 	printf("%s %c", cwd, MOS_prompt);
 	set_color(oldTextFg);
-	retval = mos_EDITLINE(buffer, bufferLength, 3);
-	printf("\n\r");
-	return retval;
+}
+
+/**
+ * Return number of characters appended to buffer
+ */
+int try_tab_expand_internal_cmd(struct tab_expansion_context *ctx)
+{
+	int i;
+	t_mosCommand *cmd;
+	for (i = 0; i < mosCommands_count; i++) {
+		if (strncasecmp(ctx->cmdline, mosCommands[i].name, ctx->cmdline_insertpos) == 0) {
+			tab_expansion_callback(ctx, ExpandNormal, mosCommands[i].name, strlen(mosCommands[i].name), mosCommands[i].name + ctx->cmdline_insertpos, strlen(mosCommands[i].name) - ctx->cmdline_insertpos);
+		}
+	}
 }
 
 // Parse a MOS command from the line edit buffer
@@ -1550,7 +1569,7 @@ uint24_t mos_DIR(char *inputPath, bool longListing)
 	static FILINFO filinfo;
 	uint8_t textBg;
 	uint8_t textFg = 15;
-	uint8_t dirColour = 2;
+	uint8_t dirColour = get_secondary_color();
 	uint8_t fileColour = 15;
 	SmallFilInfo *fnos = NULL, *fno = NULL;
 	int num_dirents, fno_num;

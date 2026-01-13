@@ -9,23 +9,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-int strcasecmp(const char *s1, const char *s2)
-{
-	const unsigned char *p1 = (const unsigned char *)s1;
-	const unsigned char *p2 = (const unsigned char *)s2;
-	int result;
-
-	if (p1 == p2) {
-		return 0;
-	}
-
-	while ((result = tolower(*p1) - tolower(*p2++)) == 0) {
-		if (*p1++ == '\0') {
-			break;
-		}
-	}
-	return result;
-}
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 // Alternative to missing strnlen() in ZDS libraries
 size_t mos_strnlen(const char *s, size_t maxlen)
@@ -59,4 +44,23 @@ char *mos_strndup(const char *s, size_t n)
 	}
 
 	return d;
+}
+
+void strinsert(char *dest, const char *src, int insert_loc, int dest_maxlen)
+{
+	int src_len = strlen(src);
+	int dest_tail_len = strlen(dest + insert_loc) + 1;
+
+	int count = MIN(dest_tail_len, dest_maxlen - insert_loc - src_len);
+	if (count > 0) {
+		memmove(dest + insert_loc + src_len,
+		    dest + insert_loc, count);
+	}
+
+	count = MIN(src_len, dest_maxlen - insert_loc - 1);
+	if (count > 0) {
+		memcpy(dest + insert_loc, src, count);
+	}
+
+	dest[dest_maxlen - 1] = 0;
 }

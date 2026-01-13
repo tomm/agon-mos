@@ -12,6 +12,30 @@
 #ifndef MOS_EDITOR_H
 #define MOS_EDITOR_H
 
+#include "defines.h"
+
+struct tab_expansion_context {
+	int num_matches;
+	char *cmdline;
+	int cmdline_insertpos;
+	char expansion[128];
+};
+
+enum TabExpansionType : uint8_t {
+	ExpandNormal,
+	ExpandDirectory,
+};
+
+void tab_expansion_callback(struct tab_expansion_context *ctx, enum TabExpansionType type, const char *fullExpansion, int fullExpansionLen, const char *expansion, int expansionLen);
+
+enum TabCompleteState : uint8_t {
+	TabCompleteInitial,
+	TabCompleteWait,
+	TabCompleteShowOptions
+};
+
+extern enum TabCompleteState tab_complete_state;
+
 #define cmd_historyWidth 255
 #define cmd_historyDepth 16
 

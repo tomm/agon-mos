@@ -14,22 +14,24 @@
  * 31/03/2023:		Added timeout for VDP protocol
  */
 
+#include "mos_editor.h"
+#include "console.h"
 #include "defines.h"
 #include "ez80f92.h"
+#include "formatting.h"
+#include "globals.h"
+#include "keyboard_buffer.h"
+#include "mos.h"
+#include "strings.h"
+#include "timer.h"
+#include "uart.h"
+#include "umm_malloc.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "console.h"
-#include "defines.h"
-#include "globals.h"
-#include "keyboard_buffer.h"
-#include "mos.h"
-#include "mos_editor.h"
-#include "timer.h"
-#include "uart.h"
-#include "umm_malloc.h"
+enum TabCompleteState tab_complete_state;
 
 // Storage for the command history
 //
@@ -232,7 +234,73 @@ static bool handleHotkey(uint8_t fkey, char *buffer, int bufferLength, int inser
 	return 0;
 }
 
-static void do_tab_complete(char *buffer, int *out_InsertPos, int *out_buflen)
+void try_tab_expand_internal_cmd(struct tab_expansion_context *ctx);
+
+void tab_expansion_callback(struct tab_expansion_context *ctx, enum TabExpansionType type, const char *fullExpansion, int fullExpansionLen, const char *expansion, int expansionLen)
+{
+	if (tab_complete_state == TabCompleteShowOptions) {
+		if (ctx->num_matches == 0) printf("\r\n");
+		uint8_t oldTextFg = active_console->get_fg_color_index();
+		if (type != ExpandNormal) {
+			set_color(get_secondary_color());
+		}
+		printf("%.*s ", fullExpansionLen, fullExpansion);
+		set_color(oldTextFg);
+	}
+	if (ctx->num_matches == 0) {
+		int count = MIN(expansionLen, sizeof(ctx->expansion) - 1);
+		memcpy(ctx->expansion, expansion, count);
+		ctx->expansion[count] = 0;
+	} else {
+		for (int j = 0; j < strlen(ctx->expansion); j++) {
+			if (expansion[j] == 0 || toupper(ctx->expansion[j]) != toupper(expansion[j])) {
+				ctx->expansion[j] = 0;
+				break;
+			}
+		}
+	}
+	ctx->num_matches++;
+}
+
+static void try_tab_expand_bin_name(struct tab_expansion_context *ctx)
+{
+	FRESULT fr;
+	DIR dj;
+	FILINFO fno;
+
+	char *search_term = umm_malloc(ctx->cmdline_insertpos + 6);
+	search_term[0] = 0;
+	strncat(search_term, ctx->cmdline, ctx->cmdline_insertpos);
+	strcat(search_term, "*.bin");
+
+	// Try local .bin
+	fr = f_findfirst(&dj, &fno, "", search_term);
+	while ((fr == FR_OK && fno.fname[0])) {
+		tab_expansion_callback(ctx, ExpandNormal, fno.fname, strlen(fno.fname) - 4, fno.fname + ctx->cmdline_insertpos, strlen(fno.fname) - ctx->cmdline_insertpos - 4);
+		fr = f_findnext(&dj, &fno);
+	}
+
+	if (strcmp(cwd, "/mos") != 0) {
+		fr = f_findfirst(&dj, &fno, "/mos/", search_term);
+		while (fr == FR_OK && fno.fname[0]) { // Now try MOSlets
+			tab_expansion_callback(ctx, ExpandNormal, fno.fname, strlen(fno.fname) - 4, fno.fname + ctx->cmdline_insertpos, strlen(fno.fname) - ctx->cmdline_insertpos - 4);
+			fr = f_findnext(&dj, &fno);
+		}
+	}
+
+	if (strcmp(cwd, "/bin") != 0) {
+		// Otherwise try /bin/
+		fr = f_findfirst(&dj, &fno, "/bin/", search_term);
+		while ((fr == FR_OK && fno.fname[0])) {
+			tab_expansion_callback(ctx, ExpandNormal, fno.fname, strlen(fno.fname) - 4, fno.fname + ctx->cmdline_insertpos, strlen(fno.fname) - ctx->cmdline_insertpos - 4);
+			fr = f_findnext(&dj, &fno);
+		}
+	}
+
+	umm_free(search_term);
+}
+
+static void try_tab_expand_argument(struct tab_expansion_context *ctx)
 {
 	char *search_term = NULL;
 	char *path = NULL;
@@ -240,72 +308,9 @@ static void do_tab_complete(char *buffer, int *out_InsertPos, int *out_buflen)
 	FRESULT fr;
 	DIR dj;
 	FILINFO fno;
-	t_mosCommand *cmd;
 	const char *searchTermStart;
-	const char *lastSpace = strrchr(buffer, ' ');
-	const char *lastSlash = strrchr(buffer, '/');
-
-	if (lastSlash == NULL && lastSpace == NULL) { // Try commands first before fatfs completion
-
-		search_term = (char *)umm_malloc(strlen(buffer) + 6);
-		if (!search_term) {
-			// umm_malloc failed, so no tab completion for us today
-			return;
-		}
-
-		strcpy(search_term, buffer);
-		strcat(search_term, ".");
-
-		cmd = mos_getCommand(search_term);
-		if (cmd != NULL) { // First try internal MOS commands
-
-			printf("%s ", cmd->name + strlen(buffer));
-			strcat(buffer, cmd->name + strlen(buffer));
-			strcat(buffer, " ");
-			*out_buflen = strlen(buffer);
-			*out_InsertPos = strlen(buffer);
-			umm_free(search_term);
-			return;
-		}
-
-		strcpy(search_term, buffer);
-		strcat(search_term, "*.bin");
-		fr = f_findfirst(&dj, &fno, "/mos/", search_term);
-		if (fr == FR_OK && fno.fname[0]) { // Now try MOSlets
-
-			printf("%.*s ", strlen(fno.fname) - 4 - strlen(buffer), fno.fname + strlen(buffer));
-			strncat(buffer, fno.fname + strlen(buffer), strlen(fno.fname) - 4 - strlen(buffer));
-			strcat(buffer, " ");
-			*out_buflen = strlen(buffer);
-			*out_InsertPos = strlen(buffer);
-			umm_free(search_term);
-			return;
-		}
-
-		// Try local .bin
-		fr = f_findfirst(&dj, &fno, "", search_term);
-		if ((fr == FR_OK && fno.fname[0])) {
-			printf("%.*s ", strlen(fno.fname) - 4 - strlen(buffer), fno.fname + strlen(buffer));
-			strncat(buffer, fno.fname + strlen(buffer), strlen(fno.fname) - 4 - strlen(buffer));
-			strcat(buffer, " ");
-			*out_buflen = strlen(buffer);
-			*out_InsertPos = strlen(buffer);
-			umm_free(search_term);
-			return;
-		}
-
-		// Otherwise try /bin/
-		fr = f_findfirst(&dj, &fno, "/bin/", search_term);
-		if ((fr == FR_OK && fno.fname[0])) {
-			printf("%.*s ", strlen(fno.fname) - 4 - strlen(buffer), fno.fname + strlen(buffer));
-			strncat(buffer, fno.fname + strlen(buffer), strlen(fno.fname) - 4 - strlen(buffer));
-			strcat(buffer, " ");
-			*out_buflen = strlen(buffer);
-			*out_InsertPos = strlen(buffer);
-			umm_free(search_term);
-			return;
-		}
-	}
+	const char *lastSpace = strrchr(ctx->cmdline, ' ');
+	const char *lastSlash = strrchr(ctx->cmdline, '/');
 
 	if (lastSlash != NULL) {
 		int pathLength = 1;
@@ -314,7 +319,7 @@ static void do_tab_complete(char *buffer, int *out_InsertPos, int *out_buflen)
 			pathLength = lastSlash - lastSpace; // Path starts after the last space and includes the slash
 		}
 		if (lastSpace == NULL) {
-			lastSpace = buffer;
+			lastSpace = ctx->cmdline;
 			pathLength = lastSlash - lastSpace;
 		}
 
@@ -338,7 +343,7 @@ static void do_tab_complete(char *buffer, int *out_InsertPos, int *out_buflen)
 		}
 		path[0] = '\0';						       // Path is empty (current dir, essentially).
 
-		searchTermStart = lastSpace ? lastSpace + 1 : buffer;
+		searchTermStart = lastSpace ? lastSpace + 1 : ctx->cmdline;
 		search_term = (char *)umm_malloc(strlen(searchTermStart) + 2); // +2 for '*' and null terminator
 	}
 
@@ -348,28 +353,88 @@ static void do_tab_complete(char *buffer, int *out_InsertPos, int *out_buflen)
 	}
 
 	strcpy(search_term, lastSpace && lastSlash > lastSpace ? lastSlash + 1 : lastSpace ? lastSpace + 1
-											   : buffer);
+											   : ctx->cmdline);
 	strcat(search_term, "*");
 
 	// printf("Path:\"%s\" Pattern:\"%s\"\r\n", path, search_term);
 	fr = f_findfirst(&dj, &fno, path, search_term);
 
-	if (fr == FR_OK && fno.fname[0]) {
-		if (fno.fattrib & AM_DIR)
-			printf("%s/", fno.fname + strlen(search_term) - 1);
-		else
-			printf("%s", fno.fname + strlen(search_term) - 1);
-
-		strcat(buffer, fno.fname + strlen(search_term) - 1);
-		if (fno.fattrib & AM_DIR) strcat(buffer, "/");
-
-		*out_buflen = strlen(buffer);
-		*out_InsertPos = strlen(buffer);
+	while (fr == FR_OK && fno.fname[0]) {
+		// unsafe
+		char expansion[128];
+		expansion[0] = 0;
+		strncat(expansion, fno.fname + strlen(search_term) - 1, sizeof(expansion) - 2);
+		if (fno.fattrib & AM_DIR) strcat(expansion, "/");
+		tab_expansion_callback(ctx, fno.fattrib & AM_DIR ? ExpandDirectory : ExpandNormal, fno.fname, strlen(fno.fname), expansion, strlen(expansion));
+		fr = f_findnext(&dj, &fno);
 	}
 
 	// Free the allocated memory
 	if (search_term) umm_free(search_term);
 	if (path) umm_free(path);
+}
+
+static void do_tab_complete(char *buffer, int *out_InsertPos, int *out_buflen)
+{
+	struct tab_expansion_context tab_ctx = {
+		.num_matches = 0,
+		.cmdline = buffer,
+		.cmdline_insertpos = *out_InsertPos,
+		.expansion = "\0"
+	};
+
+	const int BUFFER_LEN = 256; // TODO make dynamic
+
+	bool got_spaces_before_insertpos = false;
+	for (int i = 0; i < *out_InsertPos; i++) {
+		if (buffer[i] == ' ') {
+			got_spaces_before_insertpos = true;
+			break;
+		}
+	}
+
+	if (!got_spaces_before_insertpos) {
+		try_tab_expand_internal_cmd(&tab_ctx);
+		try_tab_expand_bin_name(&tab_ctx);
+	} else {
+		try_tab_expand_argument(&tab_ctx);
+	}
+
+	const int num_chars_added = strlen(tab_ctx.expansion);
+	if (tab_ctx.num_matches > 0 && tab_complete_state == TabCompleteShowOptions) {
+		printf("\n");
+	}
+	if (tab_complete_state < TabCompleteShowOptions) {
+		tab_complete_state++;
+	}
+	bool do_full_redraw = false;
+	if (num_chars_added > 0) {
+		if (tab_ctx.num_matches == 1 && tab_ctx.expansion[num_chars_added - 1] != '/') {
+			strncat(tab_ctx.expansion, " ", sizeof(tab_ctx.expansion) - strlen(tab_ctx.expansion) - 1);
+		}
+		const bool append_at_eol = (*out_InsertPos) == strlen(buffer);
+		strinsert(buffer, tab_ctx.expansion, *out_InsertPos, BUFFER_LEN);
+		if (append_at_eol) {
+			printf("%s", tab_ctx.expansion);
+			*out_InsertPos = strlen(buffer);
+		} else {
+			*out_InsertPos = (*out_InsertPos) + strlen(tab_ctx.expansion);
+			do_full_redraw = true;
+		}
+		*out_buflen = strlen(buffer);
+		return;
+	} else if (tab_complete_state == TabCompleteShowOptions) {
+		do_full_redraw = true;
+	}
+	if (do_full_redraw) {
+		putch('\r');
+		mos_print_prompt();
+		printf("%s", buffer);
+		uint8_t insert_pos_adjust = strlen(buffer) - (*out_InsertPos);
+		while (insert_pos_adjust--) {
+			doLeftCursor();
+		}
+	}
 }
 
 // The main line edit function
@@ -389,6 +454,7 @@ uint24_t mos_EDITLINE(char *buffer, int bufferLength, uint8_t flags)
 	uint8_t keya = 0;			// The ASCII key
 	uint8_t keyr = 0;			// The ASCII key to return back to the calling program
 
+	tab_complete_state = TabCompleteInitial;
 	int limit = bufferLength - 1;		// Max # of characters that can be entered
 	int insertPos;				// The insert position
 	int len = 0;				// Length of current input
@@ -397,11 +463,12 @@ uint24_t mos_EDITLINE(char *buffer, int bufferLength, uint8_t flags)
 	active_console->get_mode_information(); // Get the current screen dimensions
 
 	if (clear) {				// Clear the buffer as required
+		// memset(buffer, 0, bufferLength);
 		buffer[0] = 0;
 		insertPos = 0;
 	} else {
-		printf("%s", buffer);		// Otherwise output the current buffer
-		insertPos = strlen(buffer);	// And set the insertpos to the end
+		printf("%s", buffer);	    // Otherwise output the current buffer
+		insertPos = strlen(buffer); // And set the insertpos to the end
 	}
 
 	// Loop until an exit key is pressed
@@ -412,6 +479,11 @@ uint24_t mos_EDITLINE(char *buffer, int bufferLength, uint8_t flags)
 		len = strlen(buffer);
 		kbuf_wait_keydown(&ev);
 		keya = ev.ascii;
+
+		if (keya != '\t') {
+			tab_complete_state = TabCompleteInitial;
+		}
+
 		switch (ev.vkey) {
 		//
 		// First any extended (non-ASCII keys)

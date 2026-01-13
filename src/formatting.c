@@ -72,7 +72,7 @@ static void handle_newline()
 		if (paginated_enabled) {
 			const uint8_t oldFgCol = active_console->get_fg_color_index();
 			// yellow in most modes. visible in all
-			set_color(get_secondary_color());
+			set_color(get_primary_color());
 			printf("--Page %d-- (ESC/q/c/any key)", paginated_page);
 			kbuf_wait_keydown(&ev);
 			if (ev.ascii == 27 || ev.ascii == 'q' || ev.ascii == 'Q') {
