@@ -12,16 +12,6 @@
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
-// Alternative to missing strnlen() in ZDS libraries
-size_t mos_strnlen(const char *s, size_t maxlen)
-{
-	size_t len = 0;
-	while (len < maxlen && s[len] != '\0') {
-		len++;
-	}
-	return len;
-}
-
 // Alternative to missing strdup() in ZDS libraries
 char *mos_strdup(const char *s)
 {
@@ -35,7 +25,7 @@ char *mos_strdup(const char *s)
 // Alternative to missing strndup() in ZDS libraries
 char *mos_strndup(const char *s, size_t n)
 {
-	size_t len = mos_strnlen(s, n);
+	size_t len = strnlen(s, n);
 	char *d = umm_malloc(len + 1); // Allocate memory for length plus null terminator
 
 	if (d != NULL) {
@@ -46,21 +36,36 @@ char *mos_strndup(const char *s, size_t n)
 	return d;
 }
 
-void strinsert(char *dest, const char *src, int insert_loc, int dest_maxlen)
+void strbuf_insert(char *buf, int buf_capacity, const char *src, int insert_loc)
 {
 	int src_len = strlen(src);
-	int dest_tail_len = strlen(dest + insert_loc) + 1;
+	int dest_tail_len = strlen(buf + insert_loc) + 1;
 
-	int count = MIN(dest_tail_len, dest_maxlen - insert_loc - src_len);
+	int count = MIN(dest_tail_len, buf_capacity - insert_loc - src_len - 1);
 	if (count > 0) {
-		memmove(dest + insert_loc + src_len,
-		    dest + insert_loc, count);
+		memmove(buf + insert_loc + src_len,
+		    buf + insert_loc, count);
+	}
+	buf[insert_loc + src_len + count] = 0;
+
+	count = MIN(src_len, buf_capacity - insert_loc - 1);
+	if (count > 0) {
+		memcpy(buf + insert_loc, src, count);
+	}
+}
+
+/* Assumes buf contains a null-terminated string already.
+ * Will not append more than max_chars_to_append.
+ * Will always leave `buf` null-terminated */
+void strbuf_append(char *buf, int buf_capacity, const char *str_to_append, int max_chars_to_append)
+{
+	int src_len = strnlen(str_to_append, max_chars_to_append);
+	int insert_loc = strnlen(buf, buf_capacity);
+
+	int count = MIN(src_len, buf_capacity - insert_loc - 1);
+	if (count > 0) {
+		memcpy(buf + insert_loc, str_to_append, count);
 	}
 
-	count = MIN(src_len, dest_maxlen - insert_loc - 1);
-	if (count > 0) {
-		memcpy(dest + insert_loc, src, count);
-	}
-
-	dest[dest_maxlen - 1] = 0;
+	buf[insert_loc + count] = 0;
 }

@@ -32,6 +32,10 @@
 #include <string.h>
 
 bool tab_complete_state_showall;
+static bool editHistoryDown(char *buffer, int buffer_capacity, int insertPos, int len);
+static bool editHistorySet(char *buffer, int buffer_capacity, int insertPos, int len, int index);
+static bool editHistoryUp(char *buffer, int buffer_capacity, int insertPos, int len);
+static void editHistoryPush(char *buffer, int buffer_capacity);
 
 // Storage for the command history
 //
@@ -41,7 +45,7 @@ char *hotkey_strings[12] = {};
 
 // Move cursor left
 //
-void doLeftCursor()
+static void doLeftCursor()
 {
 	active_console->get_cursor_pos();
 	if (cursorX > 0) {
@@ -57,7 +61,7 @@ void doLeftCursor()
 
 // Move Cursor Right
 //
-void doRightCursor()
+static void doRightCursor()
 {
 	active_console->get_cursor_pos();
 	if (cursorX < (scrcols - 1)) {
@@ -72,26 +76,22 @@ void doRightCursor()
 }
 
 // Insert a character in the input string
-// Parameters:
-// - buffer: Pointer to the line edit buffer
-// - c: Character to insert
-// - insertPos: Position in the input string to insert the character
-// - len: Length of the input string (before the character is inserted)
-// - limit: Max number of characters to insert
 // Returns:
 // - true if the character was inserted, otherwise false
 //
-bool insertCharacter(char *buffer, char c, int insertPos, int len, int limit)
+static bool insertCharacter(char *buffer, int buffer_capacity, char c, int insertPos)
 {
 	int i;
 	int count = 0;
+	const int len = strnlen(buffer, buffer_capacity);
 
-	if (len < limit) {
+	if (len < buffer_capacity - 1) {
 		putch(c);
 		for (i = len; i >= insertPos; i--) {
 			buffer[i + 1] = buffer[i];
 		}
 		buffer[insertPos] = c;
+
 		for (i = insertPos + 1; i <= len; i++, count++) {
 			putch(buffer[i]);
 		}
@@ -196,7 +196,8 @@ static bool handleHotkey(uint8_t fkey, char *buffer, int bufferLength, int inser
 
 		if (wildcardPos == NULL) { // No wildcard in the hotkey string
 			removeEditLine(buffer, insertPos, len);
-			strcpy(buffer, hotkey_strings[fkey]);
+			buffer[0] = 0;
+			strbuf_append(buffer, bufferLength, hotkey_strings[fkey], bufferLength);
 			printf("%s", buffer);
 		} else {
 			uint8_t prefixLength = wildcardPos - hotkey_strings[fkey];
@@ -206,24 +207,26 @@ static bool handleHotkey(uint8_t fkey, char *buffer, int bufferLength, int inser
 
 			if (prefixLength + replacementLength + suffixLength + 1 >= bufferLength) {
 				// Exceeds max command length (256 chars)
-				putch(0x07);							  // Beep
+				putch(0x07);								 // Beep
 				return 0;
 			}
 
-			result = umm_malloc(prefixLength + replacementLength + suffixLength + 1); // +1 for null terminator
+			const int result_capacity = prefixLength + replacementLength + suffixLength + 1; // +1 for null terminator
+			result = umm_malloc(result_capacity);
 			if (!result) {
 				// Memory allocation failed
 				return 0;
 			}
 
-			strncpy(result, hotkey_strings[fkey], prefixLength); // Copy the portion preceding the wildcard to the buffer
-			result[prefixLength] = '\0';			     // Terminate
-
-			strcat(result, buffer);
-			strcat(result, wildcardPos + 2);
+			// Copy the portion preceding the wildcard to the buffer
+			result[0] = 0;
+			strbuf_append(result, result_capacity, hotkey_strings[fkey], prefixLength);
+			strbuf_append(result, result_capacity, buffer, strnlen(buffer, bufferLength));
+			strbuf_append(result, result_capacity, wildcardPos + 2, result_capacity);
 
 			removeEditLine(buffer, insertPos, len);
-			strcpy(buffer, result);
+			buffer[0] = 0;
+			strbuf_append(buffer, bufferLength, result, result_capacity);
 			printf("%s", buffer);
 
 			umm_free(result);
@@ -267,11 +270,11 @@ static void try_tab_expand_bin_name(struct tab_expansion_context *ctx)
 	FRESULT fr;
 	DIR dj;
 	FILINFO fno;
+	char search_term[128];
 
-	char *search_term = umm_malloc(ctx->cmdline_insertpos + 6);
 	search_term[0] = 0;
-	strncat(search_term, ctx->cmdline, ctx->cmdline_insertpos);
-	strcat(search_term, "*.bin");
+	strbuf_append(search_term, sizeof(search_term), ctx->cmdline, ctx->cmdline_insertpos);
+	strbuf_append(search_term, sizeof(search_term), "*.bin", sizeof(search_term));
 
 	// Try local .bin
 	fr = f_findfirst(&dj, &fno, "", search_term);
@@ -296,8 +299,6 @@ static void try_tab_expand_bin_name(struct tab_expansion_context *ctx)
 			fr = f_findnext(&dj, &fno);
 		}
 	}
-
-	umm_free(search_term);
 }
 
 static char *slice_strrchr(const char *s, int len, char needle)
@@ -325,8 +326,8 @@ static void try_tab_expand_argument(struct tab_expansion_context *ctx)
 
 	const int count = ctx->cmdline_insertpos - (word_start - ctx->cmdline);
 	search_prefix[0] = 0;
-	strncat(search_prefix, word_start, count);
-	strcat(search_prefix, "*");
+	strbuf_append(search_prefix, sizeof(search_prefix), word_start, count);
+	strbuf_append(search_prefix, sizeof(search_prefix), "*", 1);
 
 	char *last_slash = strrchr(search_prefix, '/');
 	if (last_slash) {
@@ -345,8 +346,10 @@ static void try_tab_expand_argument(struct tab_expansion_context *ctx)
 		// unsafe
 		char expansion[128];
 		expansion[0] = 0;
-		strncat(expansion, fno.fname + strlen(term) - 1, sizeof(expansion) - 2);
-		if (fno.fattrib & AM_DIR) strcat(expansion, "/");
+		strbuf_append(expansion, sizeof(expansion), fno.fname + strlen(term) - 1, sizeof(expansion) - 2);
+		if (fno.fattrib & AM_DIR) {
+			strbuf_append(expansion, sizeof(expansion), "/", 1);
+		}
 		notify_tab_expansion(ctx, fno.fattrib & AM_DIR ? ExpandDirectory : ExpandNormal, fno.fname, strlen(fno.fname), expansion, strlen(expansion));
 		fr = f_findnext(&dj, &fno);
 	}
@@ -378,10 +381,10 @@ static void do_tab_complete(char *buffer, int buffer_len, int *out_InsertPos)
 	bool do_full_redraw = false;
 	if (num_chars_added > 0) {
 		if (tab_ctx.num_matches == 1 && tab_ctx.expansion[num_chars_added - 1] != '/') {
-			strncat(tab_ctx.expansion, " ", sizeof(tab_ctx.expansion) - strlen(tab_ctx.expansion) - 1);
+			strbuf_append(tab_ctx.expansion, sizeof(tab_ctx.expansion), " ", 1);
 		}
 		const bool append_at_eol = (*out_InsertPos) == strlen(buffer);
-		strinsert(buffer, tab_ctx.expansion, *out_InsertPos, buffer_len);
+		strbuf_insert(buffer, buffer_len, tab_ctx.expansion, *out_InsertPos);
 		if (append_at_eol) {
 			printf("%s", tab_ctx.expansion);
 			*out_InsertPos = strlen(buffer);
@@ -422,7 +425,6 @@ uint24_t mos_EDITLINE(char *buffer, int bufferLength, uint8_t flags)
 	uint8_t keyr = 0;			// The ASCII key to return back to the calling program
 
 	tab_complete_state_showall = false;
-	int limit = bufferLength - 1;		// Max # of characters that can be entered
 	int insertPos;				// The insert position
 	int len = 0;				// Length of current input
 	history_no = history_size;		// Ensure our current "history" is the end of the list
@@ -500,7 +502,7 @@ uint24_t mos_EDITLINE(char *buffer, int bufferLength, uint8_t flags)
 			if (keya == 0)
 				break;
 			if (keya >= 0x20 && keya != 0x7F) {
-				if (insertCharacter(buffer, keya, insertPos, len, limit)) {
+				if (insertCharacter(buffer, bufferLength, keya, insertPos)) {
 					insertPos++;
 				}
 			} else {
@@ -565,13 +567,13 @@ uint24_t mos_EDITLINE(char *buffer, int bufferLength, uint8_t flags)
 			bool lineChanged = false;
 			switch (historyAction) {
 			case 1:				    // Push new item to stack
-				editHistoryPush(buffer);
+				editHistoryPush(buffer, bufferLength);
 				break;
 			case 2:				    // Move up in history
-				lineChanged = editHistoryUp(buffer, insertPos, len, limit);
+				lineChanged = editHistoryUp(buffer, bufferLength, insertPos, len);
 				break;
 			case 3:				    // Move down in history
-				lineChanged = editHistoryDown(buffer, insertPos, len, limit);
+				lineChanged = editHistoryDown(buffer, bufferLength, insertPos, len);
 				break;
 			}
 
@@ -605,9 +607,9 @@ void editHistoryInit()
 	}
 }
 
-void editHistoryPush(char *buffer)
+static void editHistoryPush(char *buffer, int buffer_capacity)
 {
-	int len = strlen(buffer);
+	int len = strnlen(buffer, buffer_capacity);
 
 	if (len > 0) { // If there is data in the buffer
 		char *newEntry = NULL;
@@ -617,12 +619,7 @@ void editHistoryPush(char *buffer)
 			return;
 		}
 
-		newEntry = umm_malloc(len + 1);
-		if (newEntry == NULL) {
-			// Memory allocation failed so we can't save history
-			return;
-		}
-		strcpy(newEntry, buffer);
+		newEntry = mos_strndup(buffer, buffer_capacity);
 
 		// If we're at the end of the history, then we need to shift all our entries up by one
 		if (history_size == cmd_historyDepth) {
@@ -637,7 +634,7 @@ void editHistoryPush(char *buffer)
 	}
 }
 
-bool editHistoryUp(char *buffer, int insertPos, int len, int limit)
+static bool editHistoryUp(char *buffer, int buffer_capacity, int insertPos, int len)
 {
 	int index = -1;
 	if (history_no > 0) {
@@ -647,10 +644,10 @@ bool editHistoryUp(char *buffer, int insertPos, int len, int limit)
 		// replace current line (which may have been edited) with first entry
 		index = 0;
 	}
-	return editHistorySet(buffer, insertPos, len, limit, index);
+	return editHistorySet(buffer, buffer_capacity, insertPos, len, index);
 }
 
-bool editHistoryDown(char *buffer, int insertPos, int len, int limit)
+static bool editHistoryDown(char *buffer, int buffer_capacity, int insertPos, int len)
 {
 	if (history_no < history_size) {
 		if (history_no == history_size - 1) {
@@ -659,22 +656,17 @@ bool editHistoryDown(char *buffer, int insertPos, int len, int limit)
 			history_no = history_size;
 			return true;
 		}
-		return editHistorySet(buffer, insertPos, len, limit, ++history_no);
+		return editHistorySet(buffer, buffer_capacity, insertPos, len, ++history_no);
 	}
 	return false;
 }
 
-bool editHistorySet(char *buffer, int insertPos, int len, int limit, int index)
+static bool editHistorySet(char *buffer, int buffer_capacity, int insertPos, int len, int index)
 {
 	if (index >= 0 && index < history_size) {
 		removeEditLine(buffer, insertPos, len);
-		if (strlen(cmd_history[index]) > limit) {
-			// if the history entry is longer than the buffer, then we need to truncate it
-			strncpy(buffer, cmd_history[index], limit);
-			buffer[limit] = '\0';
-		} else {
-			strcpy(buffer, cmd_history[index]); // Copy from the history to the buffer
-		}
+		buffer[0] = 0;
+		strbuf_append(buffer, buffer_capacity, cmd_history[index], buffer_capacity - 1);
 		history_no = index;
 		return true;
 	}

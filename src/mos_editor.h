@@ -34,10 +34,6 @@ void notify_tab_expansion(struct tab_expansion_context *ctx, enum TabExpansionTy
 uint24_t mos_EDITLINE(char *filename, int bufferLength, uint8_t clear);
 
 void editHistoryInit();
-void editHistoryPush(char *buffer);
-bool editHistoryUp(char *buffer, int insertPos, int len, int limit);
-bool editHistoryDown(char *buffer, int insertPos, int len, int limit);
-bool editHistorySet(char *buffer, int insertPos, int len, int limit, int index);
 
 extern char *hotkey_strings[12];
 

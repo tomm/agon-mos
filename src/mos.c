@@ -641,10 +641,8 @@ int mos_cmdHOTKEY(char *ptr)
 
 	if (hotkey_strings[fn_number - 1] != NULL) umm_free(hotkey_strings[fn_number - 1]);
 
-	hotkey_strings[fn_number - 1] = umm_malloc((strlen(mos_strtok_ptr) + 1) * sizeof(char));
+	hotkey_strings[fn_number - 1] = mos_strndup(mos_strtok_ptr, 256);
 	if (!hotkey_strings[fn_number - 1]) return FR_INT_ERR;
-	strncpy(hotkey_strings[fn_number - 1], mos_strtok_ptr, strlen(mos_strtok_ptr));
-	hotkey_strings[fn_number - 1][strlen(mos_strtok_ptr)] = '\0';
 
 	return 0;
 }

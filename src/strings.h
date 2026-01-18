@@ -10,14 +10,13 @@
 #ifndef STRINGS_H
 #define STRINGS_H
 
-size_t mos_strnlen(const char *s, size_t maxlen);
-
 // Alternative to missing strdup() in ZDS libraries
 char *mos_strdup(const char *s);
 
 // Alternative to missing strndup() in ZDS libraries
 char *mos_strndup(const char *s, size_t n);
 
-void strinsert(char *dest, const char *src, int insert_loc, int dest_maxlen);
+void strbuf_append(char *buf, int buf_capacity, const char *str_to_append, int max_chars_to_append);
+void strbuf_insert(char *buf, int buf_capacity, const char *src, int insert_loc);
 
 #endif // STRINGS_H
