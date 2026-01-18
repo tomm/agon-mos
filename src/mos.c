@@ -226,7 +226,7 @@ int try_tab_expand_internal_cmd(struct tab_expansion_context *ctx)
 	t_mosCommand *cmd;
 	for (i = 0; i < mosCommands_count; i++) {
 		if (strncasecmp(ctx->cmdline, mosCommands[i].name, ctx->cmdline_insertpos) == 0) {
-			tab_expansion_callback(ctx, ExpandNormal, mosCommands[i].name, strlen(mosCommands[i].name), mosCommands[i].name + ctx->cmdline_insertpos, strlen(mosCommands[i].name) - ctx->cmdline_insertpos);
+			notify_tab_expansion(ctx, ExpandNormal, mosCommands[i].name, strlen(mosCommands[i].name), mosCommands[i].name + ctx->cmdline_insertpos, strlen(mosCommands[i].name) - ctx->cmdline_insertpos);
 		}
 	}
 }

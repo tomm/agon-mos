@@ -26,15 +26,7 @@ enum TabExpansionType : uint8_t {
 	ExpandDirectory,
 };
 
-void tab_expansion_callback(struct tab_expansion_context *ctx, enum TabExpansionType type, const char *fullExpansion, int fullExpansionLen, const char *expansion, int expansionLen);
-
-enum TabCompleteState : uint8_t {
-	TabCompleteInitial,
-	TabCompleteWait,
-	TabCompleteShowOptions
-};
-
-extern enum TabCompleteState tab_complete_state;
+void notify_tab_expansion(struct tab_expansion_context *ctx, enum TabExpansionType type, const char *fullExpansion, int fullExpansionLen, const char *expansion, int expansionLen);
 
 #define cmd_historyWidth 255
 #define cmd_historyDepth 16

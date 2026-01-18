@@ -31,7 +31,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-enum TabCompleteState tab_complete_state;
+bool tab_complete_state_showall;
 
 // Storage for the command history
 //
@@ -236,9 +236,9 @@ static bool handleHotkey(uint8_t fkey, char *buffer, int bufferLength, int inser
 
 void try_tab_expand_internal_cmd(struct tab_expansion_context *ctx);
 
-void tab_expansion_callback(struct tab_expansion_context *ctx, enum TabExpansionType type, const char *fullExpansion, int fullExpansionLen, const char *expansion, int expansionLen)
+void notify_tab_expansion(struct tab_expansion_context *ctx, enum TabExpansionType type, const char *fullExpansion, int fullExpansionLen, const char *expansion, int expansionLen)
 {
-	if (tab_complete_state == TabCompleteShowOptions) {
+	if (tab_complete_state_showall) {
 		if (ctx->num_matches == 0) printf("\r\n");
 		uint8_t oldTextFg = active_console->get_fg_color_index();
 		if (type != ExpandNormal) {
@@ -276,14 +276,14 @@ static void try_tab_expand_bin_name(struct tab_expansion_context *ctx)
 	// Try local .bin
 	fr = f_findfirst(&dj, &fno, "", search_term);
 	while ((fr == FR_OK && fno.fname[0])) {
-		tab_expansion_callback(ctx, ExpandNormal, fno.fname, strlen(fno.fname) - 4, fno.fname + ctx->cmdline_insertpos, strlen(fno.fname) - ctx->cmdline_insertpos - 4);
+		notify_tab_expansion(ctx, ExpandNormal, fno.fname, strlen(fno.fname) - 4, fno.fname + ctx->cmdline_insertpos, strlen(fno.fname) - ctx->cmdline_insertpos - 4);
 		fr = f_findnext(&dj, &fno);
 	}
 
 	if (strcmp(cwd, "/mos") != 0) {
 		fr = f_findfirst(&dj, &fno, "/mos/", search_term);
 		while (fr == FR_OK && fno.fname[0]) { // Now try MOSlets
-			tab_expansion_callback(ctx, ExpandNormal, fno.fname, strlen(fno.fname) - 4, fno.fname + ctx->cmdline_insertpos, strlen(fno.fname) - ctx->cmdline_insertpos - 4);
+			notify_tab_expansion(ctx, ExpandNormal, fno.fname, strlen(fno.fname) - 4, fno.fname + ctx->cmdline_insertpos, strlen(fno.fname) - ctx->cmdline_insertpos - 4);
 			fr = f_findnext(&dj, &fno);
 		}
 	}
@@ -292,7 +292,7 @@ static void try_tab_expand_bin_name(struct tab_expansion_context *ctx)
 		// Otherwise try /bin/
 		fr = f_findfirst(&dj, &fno, "/bin/", search_term);
 		while ((fr == FR_OK && fno.fname[0])) {
-			tab_expansion_callback(ctx, ExpandNormal, fno.fname, strlen(fno.fname) - 4, fno.fname + ctx->cmdline_insertpos, strlen(fno.fname) - ctx->cmdline_insertpos - 4);
+			notify_tab_expansion(ctx, ExpandNormal, fno.fname, strlen(fno.fname) - 4, fno.fname + ctx->cmdline_insertpos, strlen(fno.fname) - ctx->cmdline_insertpos - 4);
 			fr = f_findnext(&dj, &fno);
 		}
 	}
@@ -300,81 +300,59 @@ static void try_tab_expand_bin_name(struct tab_expansion_context *ctx)
 	umm_free(search_term);
 }
 
+static char *slice_strrchr(const char *s, int len, char needle)
+{
+	for (int i = len - 1; i >= 0; i--) {
+		if (s[i] == needle) return &s[i];
+	}
+	return NULL;
+}
+
 static void try_tab_expand_argument(struct tab_expansion_context *ctx)
 {
-	char *search_term = NULL;
-	char *path = NULL;
+	char search_prefix[256];
+	char *path;
+	char *term;
 
 	FRESULT fr;
 	DIR dj;
 	FILINFO fno;
 	const char *searchTermStart;
-	const char *lastSpace = strrchr(ctx->cmdline, ' ');
-	const char *lastSlash = strrchr(ctx->cmdline, '/');
 
-	if (lastSlash != NULL) {
-		int pathLength = 1;
+	const char *word_start = slice_strrchr(ctx->cmdline, ctx->cmdline_insertpos, ' ');
+	if (word_start == NULL) return;
+	word_start++;
 
-		if (lastSpace != NULL && lastSlash > lastSpace) {
-			pathLength = lastSlash - lastSpace; // Path starts after the last space and includes the slash
-		}
-		if (lastSpace == NULL) {
-			lastSpace = ctx->cmdline;
-			pathLength = lastSlash - lastSpace;
-		}
+	const int count = ctx->cmdline_insertpos - (word_start - ctx->cmdline);
+	search_prefix[0] = 0;
+	strncat(search_prefix, word_start, count);
+	strcat(search_prefix, "*");
 
-		path = (char *)umm_malloc(pathLength + 1);  // +1 for null terminator
-		if (path == NULL) {
-			return;
-		}
-		strncpy(path, lastSpace + 1, pathLength);   // Start after the last space
-		path[pathLength] = '\0';		    // Null-terminate the string
-
-		// Determine the start of the search term
-		searchTermStart = lastSlash + 1;
-		if (lastSpace != NULL && lastSpace > lastSlash) {
-			searchTermStart = lastSpace + 1;
-		}
-		search_term = (char *)umm_malloc(strlen(searchTermStart) + 2); // +2 for '*' and null terminator
+	char *last_slash = strrchr(search_prefix, '/');
+	if (last_slash) {
+		*last_slash = 0;
+		path = search_prefix;
+		term = last_slash + 1;
 	} else {
-		path = (char *)umm_malloc(1);
-		if (path == NULL) {
-			return;
-		}
-		path[0] = '\0';						       // Path is empty (current dir, essentially).
-
-		searchTermStart = lastSpace ? lastSpace + 1 : ctx->cmdline;
-		search_term = (char *)umm_malloc(strlen(searchTermStart) + 2); // +2 for '*' and null terminator
+		path = "";
+		term = search_prefix;
 	}
 
-	if (search_term == NULL) {
-		if (path) umm_free(path);
-		return;
-	}
-
-	strcpy(search_term, lastSpace && lastSlash > lastSpace ? lastSlash + 1 : lastSpace ? lastSpace + 1
-											   : ctx->cmdline);
-	strcat(search_term, "*");
-
-	// printf("Path:\"%s\" Pattern:\"%s\"\r\n", path, search_term);
-	fr = f_findfirst(&dj, &fno, path, search_term);
+	// printf("Path:\"%s\" Pattern:\"%s\"\r\n", path, term);
+	fr = f_findfirst(&dj, &fno, path, term);
 
 	while (fr == FR_OK && fno.fname[0]) {
 		// unsafe
 		char expansion[128];
 		expansion[0] = 0;
-		strncat(expansion, fno.fname + strlen(search_term) - 1, sizeof(expansion) - 2);
+		strncat(expansion, fno.fname + strlen(term) - 1, sizeof(expansion) - 2);
 		if (fno.fattrib & AM_DIR) strcat(expansion, "/");
-		tab_expansion_callback(ctx, fno.fattrib & AM_DIR ? ExpandDirectory : ExpandNormal, fno.fname, strlen(fno.fname), expansion, strlen(expansion));
+		notify_tab_expansion(ctx, fno.fattrib & AM_DIR ? ExpandDirectory : ExpandNormal, fno.fname, strlen(fno.fname), expansion, strlen(expansion));
 		fr = f_findnext(&dj, &fno);
 	}
-
-	// Free the allocated memory
-	if (search_term) umm_free(search_term);
-	if (path) umm_free(path);
 }
 
-static void do_tab_complete(char *buffer, int *out_InsertPos, int *out_buflen)
+static void do_tab_complete(char *buffer, int buffer_len, int *out_InsertPos)
 {
 	struct tab_expansion_context tab_ctx = {
 		.num_matches = 0,
@@ -383,29 +361,19 @@ static void do_tab_complete(char *buffer, int *out_InsertPos, int *out_buflen)
 		.expansion = "\0"
 	};
 
-	const int BUFFER_LEN = 256; // TODO make dynamic
-
-	bool got_spaces_before_insertpos = false;
-	for (int i = 0; i < *out_InsertPos; i++) {
-		if (buffer[i] == ' ') {
-			got_spaces_before_insertpos = true;
-			break;
-		}
-	}
-
-	if (!got_spaces_before_insertpos) {
+	if (slice_strrchr(buffer, *out_InsertPos, ' ')) {
+		try_tab_expand_argument(&tab_ctx);
+	} else {
 		try_tab_expand_internal_cmd(&tab_ctx);
 		try_tab_expand_bin_name(&tab_ctx);
-	} else {
-		try_tab_expand_argument(&tab_ctx);
 	}
 
 	const int num_chars_added = strlen(tab_ctx.expansion);
-	if (tab_ctx.num_matches > 0 && tab_complete_state == TabCompleteShowOptions) {
+	if (tab_ctx.num_matches > 0 && tab_complete_state_showall) {
 		printf("\n");
 	}
-	if (tab_complete_state < TabCompleteShowOptions) {
-		tab_complete_state++;
+	if (tab_ctx.num_matches > 1 && num_chars_added == 0) {
+		tab_complete_state_showall = true;
 	}
 	bool do_full_redraw = false;
 	if (num_chars_added > 0) {
@@ -413,7 +381,7 @@ static void do_tab_complete(char *buffer, int *out_InsertPos, int *out_buflen)
 			strncat(tab_ctx.expansion, " ", sizeof(tab_ctx.expansion) - strlen(tab_ctx.expansion) - 1);
 		}
 		const bool append_at_eol = (*out_InsertPos) == strlen(buffer);
-		strinsert(buffer, tab_ctx.expansion, *out_InsertPos, BUFFER_LEN);
+		strinsert(buffer, tab_ctx.expansion, *out_InsertPos, buffer_len);
 		if (append_at_eol) {
 			printf("%s", tab_ctx.expansion);
 			*out_InsertPos = strlen(buffer);
@@ -421,9 +389,8 @@ static void do_tab_complete(char *buffer, int *out_InsertPos, int *out_buflen)
 			*out_InsertPos = (*out_InsertPos) + strlen(tab_ctx.expansion);
 			do_full_redraw = true;
 		}
-		*out_buflen = strlen(buffer);
 		return;
-	} else if (tab_complete_state == TabCompleteShowOptions) {
+	} else if (tab_complete_state_showall) {
 		do_full_redraw = true;
 	}
 	if (do_full_redraw) {
@@ -454,7 +421,7 @@ uint24_t mos_EDITLINE(char *buffer, int bufferLength, uint8_t flags)
 	uint8_t keya = 0;			// The ASCII key
 	uint8_t keyr = 0;			// The ASCII key to return back to the calling program
 
-	tab_complete_state = TabCompleteInitial;
+	tab_complete_state_showall = false;
 	int limit = bufferLength - 1;		// Max # of characters that can be entered
 	int insertPos;				// The insert position
 	int len = 0;				// Length of current input
@@ -481,7 +448,7 @@ uint24_t mos_EDITLINE(char *buffer, int bufferLength, uint8_t flags)
 		keya = ev.ascii;
 
 		if (keya != '\t') {
-			tab_complete_state = TabCompleteInitial;
+			tab_complete_state_showall = false;
 		}
 
 		switch (ev.vkey) {
@@ -552,7 +519,8 @@ uint24_t mos_EDITLINE(char *buffer, int bufferLength, uint8_t flags)
 					break;
 				case 0x09:		   // Tab
 					if (enableTab) {
-						do_tab_complete(buffer, &insertPos, &len);
+						do_tab_complete(buffer, bufferLength, &insertPos);
+						len = strlen(buffer);
 					}
 					break;
 				case 0x0A:		   // Cursor Down
