@@ -260,9 +260,7 @@ _vdp_fn_gotoxy_arg1:
 		ld (_fb_curs_x),a
 	2:
 		call update_curs_ptr
-		ld hl,_interpret_char
-		ld (vdp_active_fn),hl
-		ret
+		jp to_vdu_base_state
 
 _vdp_fn_set_color:
 		push de
@@ -303,15 +301,11 @@ _vdp_fn_set_color:
 
 _vdp_fn_set_bg_rgb332:
 		ld (_fbterm_bg),a
-		ld hl,_interpret_char
-		ld (vdp_active_fn),hl
-		ret
+		jp to_vdu_base_state
 
 _vdp_fn_set_fg_rgb332:
 		ld (_fbterm_fg),a
-		ld hl,_interpret_char
-		ld (vdp_active_fn),hl
-		ret
+		jp to_vdu_base_state
 
 _vdp_fn_rawchar:
 		push af
@@ -319,7 +313,42 @@ _vdp_fn_rawchar:
 		pop af
 		call raw_draw_char
 		call move_cursor_right
+		jp to_vdu_base_state
+
+to_vdu_base_state:
 		ld hl,_interpret_char
+		ld (vdp_active_fn),hl
+		ret
+
+_vdu23_0_0x94:
+		ld (_scrpixelIndex), A		; nonsense but whatever
+		ld hl,_vpd_protocol_flags
+		set 2,(hl)
+		jp to_vdu_base_state
+
+_vdu23_arg2:
+		; handle vdu 23,0,0x86 (request MODE info)
+		cp 0x86
+		jp z,1f
+		; vdu 23,0,0x94,index (request colour)
+		cp 0x94
+		jp z,2f
+		jp to_vdu_base_state
+	1:
+		; mark _vdp_protocol_flags mode bit
+		ld hl,_vpd_protocol_flags
+		set 4,(hl)
+		jp to_vdu_base_state
+	2:
+		ld hl,_vdu23_0_0x94
+		ld (vdp_active_fn),hl
+		ret
+
+_vdu23_arg1:
+		; ignore all except vdu 23,0,...
+		cp 0
+		jp nz,to_vdu_base_state
+		ld hl,_vdu23_arg2
 		ld (vdp_active_fn),hl
 		ret
 
@@ -329,14 +358,7 @@ _vdp_changemode:
 		push hl
 		call _mos_FBMODE
 		pop hl
-		ld hl,_interpret_char
-		ld (vdp_active_fn),hl
-		ret
-
-_vdp_fn_1arg_nop:
-		ld hl,_interpret_char
-		ld (vdp_active_fn),hl
-		ret
+		jp to_vdu_base_state
 
 move_cursor_left:
 		ld a,(_fb_curs_x)
@@ -432,6 +454,8 @@ _interpret_char:
 		jp z,.handle_gohome
 		cp 27
 		jp z,.handle_rawchar
+		cp 23
+		jp z,.handle_vdu23_general
 		cp 22
 		jp z,.handle_vdu22_changemode
 		cp 17
@@ -464,6 +488,11 @@ _interpret_char:
 		pop iy
 		pop ix
 		ret
+
+	.handle_vdu23_general:
+		ld hl,_vdu23_arg1
+		ld (vdp_active_fn),hl
+		jp .end
 
 	.handle_vdu22_changemode:
 		ld hl,_vdp_changemode
