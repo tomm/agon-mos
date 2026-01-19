@@ -16,6 +16,7 @@
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
+#include "../src_umm_malloc/umm_malloc.h"
 #include <stdbool.h>
 #include <stdint.h>
 

@@ -34,7 +34,7 @@
 #ifndef MOS_H
 #define MOS_H
 
-#include "ff.h"
+#include "../src_fatfs/ff.h"
 
 extern char cmd[256]; // Array for the command line handler
 

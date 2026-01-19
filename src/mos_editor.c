@@ -25,7 +25,6 @@
 #include "strings.h"
 #include "timer.h"
 #include "uart.h"
-#include "umm_malloc.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -347,13 +346,13 @@ static void try_tab_expand_argument(struct tab_expansion_context *ctx)
 		term = last_slash + 1;
 	} else if (search_prefix[0] == '/') {
 		path = "/";
-		term = search_prefix+1;
+		term = search_prefix + 1;
 	} else {
 		path = "";
 		term = search_prefix;
 	}
 
-	//printf("Path:\"%s\" Pattern:\"%s\"\r\n", path, term);
+	// printf("Path:\"%s\" Pattern:\"%s\"\r\n", path, term);
 
 	// Special case: '..'
 	if (strcmp(term, ".*") == 0) {
@@ -380,10 +379,9 @@ static void try_tab_expand_argument(struct tab_expansion_context *ctx)
 
 static char find_first_nonspace_chr(const char *str, int max)
 {
-	int i=0;
-	for (; i<max && str[i]==' '; i++) {}
+	int i = 0;
+	for (; i < max && str[i] == ' '; i++) { }
 	return str[i];
-
 }
 
 static void do_tab_complete(char *buffer, int buffer_len, int *out_InsertPos)

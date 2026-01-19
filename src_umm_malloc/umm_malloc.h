@@ -8,8 +8,11 @@
 #ifndef UMM_MALLOC_H
 #define UMM_MALLOC_H
 
-#include <defines.h>
 #include <stddef.h>
+#include <stdint.h>
+
+typedef int int24_t;
+typedef unsigned int uint24_t;
 
 #ifdef __cplusplus
 extern "C" {

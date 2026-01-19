@@ -49,13 +49,11 @@
 #include "config.h"
 #include "console.h"
 #include "defines.h"
-#include "ff.h"
 #include "keyboard_buffer.h"
 #include "mos.h"
 #include "mos_editor.h"
 #include "strings.h"
 #include "uart.h"
-#include "umm_malloc.h"
 #ifdef FEAT_FRAMEBUFFER
 #include "fbconsole.h"
 #include "formatting.h"
@@ -259,7 +257,7 @@ bool mos_cmp(const char *p1, const char *p2)
 {
 	char c1;
 	char c2;
-	int i = 0;;
+	int i = 0;
 	do {
 		c1 = toupper(*p1++);
 		c2 = toupper(*p2++);

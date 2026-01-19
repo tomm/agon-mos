@@ -41,7 +41,6 @@
 #include "console.h"
 #include "defines.h"
 #include "fbconsole.h"
-#include "ff.h"
 #include "globals.h"
 #include "i2c.h"
 #include "mos.h"
@@ -49,7 +48,6 @@
 #include "spi.h"
 #include "timer.h"
 #include "uart.h"
-#include "umm_malloc.h"
 
 extern void *set_vector(unsigned int vector, void (*handler)(void));
 
