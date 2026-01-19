@@ -107,6 +107,7 @@ static void init_interrupts(void)
 // Should never return
 void mainloop(void)
 {
+	DEBUG_STACK();
 	// The main loop
 	//
 	while (1) {

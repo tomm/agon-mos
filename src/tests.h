@@ -3,7 +3,7 @@
 
 #include "defines.h"
 
-#if DEBUG > 0
+#ifdef DEBUG
 
 extern int mos_cmdTEST(char *ptr);
 

@@ -241,6 +241,8 @@ void try_tab_expand_internal_cmd(struct tab_expansion_context *ctx);
 
 void notify_tab_expansion(struct tab_expansion_context *ctx, enum TabExpansionType type, const char *fullExpansion, int fullExpansionLen, const char *expansion, int expansionLen)
 {
+	DEBUG_STACK();
+
 	if (tab_complete_state_showall) {
 		if (ctx->num_matches == 0) printf("\r\n");
 		uint8_t oldTextFg = active_console->get_fg_color_index();
@@ -271,6 +273,8 @@ static void try_tab_expand_bin_name(struct tab_expansion_context *ctx)
 	DIR dj;
 	FILINFO fno;
 	char search_term[128];
+
+	DEBUG_STACK();
 
 	search_term[0] = 0;
 	strbuf_append(search_term, sizeof(search_term), ctx->cmdline, ctx->cmdline_insertpos);
@@ -320,9 +324,16 @@ static void try_tab_expand_argument(struct tab_expansion_context *ctx)
 	FILINFO fno;
 	const char *searchTermStart;
 
+	DEBUG_STACK();
+
 	const char *word_start = slice_strrchr(ctx->cmdline, ctx->cmdline_insertpos, ' ');
-	if (word_start == NULL) return;
-	word_start++;
+
+	if (word_start == NULL) {
+		// expanding from start of cmdline
+		word_start = ctx->cmdline;
+	} else {
+		word_start++;
+	}
 
 	const int count = ctx->cmdline_insertpos - (word_start - ctx->cmdline);
 	search_prefix[0] = 0;
@@ -330,16 +341,28 @@ static void try_tab_expand_argument(struct tab_expansion_context *ctx)
 	strbuf_append(search_prefix, sizeof(search_prefix), "*", 1);
 
 	char *last_slash = strrchr(search_prefix, '/');
-	if (last_slash) {
+	if (last_slash && last_slash != &search_prefix[0]) {
 		*last_slash = 0;
 		path = search_prefix;
 		term = last_slash + 1;
+	} else if (search_prefix[0] == '/') {
+		path = "/";
+		term = search_prefix+1;
 	} else {
 		path = "";
 		term = search_prefix;
 	}
 
-	// printf("Path:\"%s\" Pattern:\"%s\"\r\n", path, term);
+	//printf("Path:\"%s\" Pattern:\"%s\"\r\n", path, term);
+
+	// Special case: '..'
+	if (strcmp(term, ".*") == 0) {
+		notify_tab_expansion(ctx, ExpandDirectory, "..", 2, "./", 2);
+	}
+	if (strcmp(term, "..*") == 0) {
+		notify_tab_expansion(ctx, ExpandDirectory, "..", 2, "/", 1);
+	}
+
 	fr = f_findfirst(&dj, &fno, path, term);
 
 	while (fr == FR_OK && fno.fname[0]) {
@@ -355,6 +378,14 @@ static void try_tab_expand_argument(struct tab_expansion_context *ctx)
 	}
 }
 
+static char find_first_nonspace_chr(const char *str, int max)
+{
+	int i=0;
+	for (; i<max && str[i]==' '; i++) {}
+	return str[i];
+
+}
+
 static void do_tab_complete(char *buffer, int buffer_len, int *out_InsertPos)
 {
 	struct tab_expansion_context tab_ctx = {
@@ -364,7 +395,11 @@ static void do_tab_complete(char *buffer, int buffer_len, int *out_InsertPos)
 		.expansion = "\0"
 	};
 
-	if (slice_strrchr(buffer, *out_InsertPos, ' ')) {
+	DEBUG_STACK();
+
+	const char first_char = find_first_nonspace_chr(buffer, buffer_len);
+
+	if (first_char == '.' || first_char == '/' || slice_strrchr(buffer, *out_InsertPos, ' ')) {
 		try_tab_expand_argument(&tab_ctx);
 	} else {
 		try_tab_expand_internal_cmd(&tab_ctx);

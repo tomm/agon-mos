@@ -61,7 +61,7 @@
 #include "formatting.h"
 #include "globals.h"
 #endif								     /* FEAT_FRAMEBUFFER */
-#if DEBUG > 0
+#ifdef DEBUG
 #include "tests.h"
 #endif								     /* DEBUG */
 
@@ -89,7 +89,6 @@ bool vdpSupportsTextPalette = false;
 // both for abbreviations and for the help command
 //
 static t_mosCommand mosCommands[] = {
-	{ ".", &mos_cmdDIR, HELP_CAT_ARGS, HELP_CAT },
 	{ "CAT", &mos_cmdDIR, HELP_CAT_ARGS, HELP_CAT },
 	{ "CD", &mos_cmdCD, HELP_CD_ARGS, HELP_CD },
 	{ "CDIR", &mos_cmdCD, HELP_CD_ARGS, HELP_CD },
@@ -125,7 +124,7 @@ static t_mosCommand mosCommands[] = {
 	{ "TIME", &mos_cmdTIME, HELP_TIME_ARGS, HELP_TIME },
 	{ "TYPE", &mos_cmdTYPE, HELP_TYPE_ARGS, HELP_TYPE },
 	{ "VDU", &mos_cmdVDU, HELP_VDU_ARGS, HELP_VDU },
-#if DEBUG > 0
+#ifdef DEBUG
 	{ "RUN_MOS_TESTS", &mos_cmdTEST, NULL, "Run the MOS OS test suite" },
 #endif /* DEBUG */
 };
@@ -260,15 +259,17 @@ bool mos_cmp(const char *p1, const char *p2)
 {
 	char c1;
 	char c2;
+	int i = 0;;
 	do {
 		c1 = toupper(*p1++);
 		c2 = toupper(*p2++);
-		if (c2 == '.') {
+		if (i != 0 && c2 == '.') {
 			c1 = 0;
 			c2 = 0;
 		}
 		if (c1 < 0x20) c1 = 0;
 		if (c2 < 0x20) c2 = 0;
+		i++;
 	} while (c1 && c2 && c1 == c2);
 	return c1 - c2;
 }
@@ -427,7 +428,6 @@ int mos_exec(char *buffer, bool in_mos)
 {
 	char *ptr;
 	int fr = 0;
-	int (*func)(char *ptr);
 	char path[256];
 	uint8_t mode;
 	t_mosCommand *cmd;
@@ -438,47 +438,52 @@ int mos_exec(char *buffer, bool in_mos)
 	}
 
 	ptr = mos_strtok(ptr, " ");
-	if (ptr != NULL) {
-		cmd = mos_getCommand(ptr);
-		func = cmd->func;
-		if (cmd != NULL && func != 0) {
-			return func(ptr);
-		} else {
-			if (strlen(ptr) > 246) { // Maximum command length (to prevent buffer overrun)
-				return MOS_INVALID_COMMAND;
-			} else {
-				sprintf(path, "/mos/%s.bin", ptr);
-				fr = mos_LOAD(path, MOS_starLoadAddress, 0);
-				if (fr == FR_OK) {
-					return mos_runBin(MOS_starLoadAddress);
-				}
-				if (fr == MOS_OVERLAPPING_SYSTEM) {
-					return fr;
-				}
+	if (ptr == NULL) return fr;
 
-				if (in_mos) {
-					sprintf(path, "%s.bin", ptr);
-					fr = mos_LOAD(path, MOS_defaultLoadAddress, 0);
-					if (fr == FR_OK) {
-						return mos_runBin(MOS_defaultLoadAddress);
-					}
-					if (fr == MOS_OVERLAPPING_SYSTEM) {
-						return fr;
-					}
-					sprintf(path, "/bin/%s.bin", ptr);
-					fr = mos_LOAD(path, MOS_defaultLoadAddress, 0);
-					if (fr == FR_OK) {
-						return mos_runBin(MOS_defaultLoadAddress);
-					}
-					if (fr == MOS_OVERLAPPING_SYSTEM) {
-						return fr;
-					}
-				}
-				if (fr == FR_NO_FILE || fr == FR_NO_PATH) {
-					return MOS_INVALID_COMMAND;
-				}
-			}
+	cmd = mos_getCommand(ptr);
+	if (cmd != NULL && cmd->func != 0) {
+		return cmd->func(ptr);
+	}
+
+	// some absolute or relative path. try to load directly
+	if (strchr(ptr, '/')) {
+		fr = mos_LOAD(ptr, MOS_defaultLoadAddress, 0);
+		if (fr == FR_OK) {
+			return mos_runBin(MOS_defaultLoadAddress);
+		} else {
+			return fr;
 		}
+	}
+
+	snprintf(path, sizeof(path), "/mos/%s.bin", ptr);
+	fr = mos_LOAD(path, MOS_starLoadAddress, 0);
+	if (fr == FR_OK) {
+		return mos_runBin(MOS_starLoadAddress);
+	}
+	if (fr == MOS_OVERLAPPING_SYSTEM) {
+		return fr;
+	}
+
+	if (in_mos) {
+		snprintf(path, sizeof(path), "%s.bin", ptr);
+		fr = mos_LOAD(path, MOS_defaultLoadAddress, 0);
+		if (fr == FR_OK) {
+			return mos_runBin(MOS_defaultLoadAddress);
+		}
+		if (fr == MOS_OVERLAPPING_SYSTEM) {
+			return fr;
+		}
+		snprintf(path, sizeof(path), "/bin/%s.bin", ptr);
+		fr = mos_LOAD(path, MOS_defaultLoadAddress, 0);
+		if (fr == FR_OK) {
+			return mos_runBin(MOS_defaultLoadAddress);
+		}
+		if (fr == MOS_OVERLAPPING_SYSTEM) {
+			return fr;
+		}
+	}
+	if (fr == FR_NO_FILE || fr == FR_NO_PATH) {
+		return MOS_INVALID_COMMAND;
 	}
 	return fr;
 }
@@ -681,6 +686,8 @@ int mos_cmdEXEC(char *ptr)
 	char *filename;
 	uint24_t addr;
 	char buf[256];
+
+	DEBUG_STACK();
 
 	if (
 	    !mos_parseString(NULL, &filename)) {
@@ -1117,6 +1124,9 @@ int mos_cmdMEM(char *ptr)
 
 	printf("Largest free MOS:HEAP fragment: %d b\r\n", try_len);
 	printf("Sysvars at &%06x\r\n", (uint24_t)sysvars);
+#ifdef DEBUG
+	printf("Stack highwatermark: &%06x (%d b)\r\rn", stack_highwatermark, (uint24_t)_stack - stack_highwatermark);
+#endif /* DEBUG */
 	printf("\r\n");
 
 	return 0;
@@ -1388,6 +1398,8 @@ uint24_t mos_TYPE(char *filename)
 	struct keyboard_event_t ev;
 	bool do_wait = false;
 
+	DEBUG_STACK();
+
 	fr = f_open(&fil, filename, FA_READ);
 	if (fr != FR_OK) {
 		return fr;
@@ -1571,6 +1583,8 @@ uint24_t mos_DIR(char *inputPath, bool longListing)
 	uint8_t fileColour = 15;
 	SmallFilInfo *fnos = NULL, *fno = NULL;
 	int num_dirents, fno_num;
+
+	DEBUG_STACK();
 
 	fr = f_getlabel("", str, 0);
 	if (fr != FR_OK) {
@@ -1930,6 +1944,8 @@ uint24_t mos_COPY(char *srcPath, char *dstPath, bool verbose)
 	char *srcDir = NULL, *pattern = NULL, *fullSrcPath = NULL, *fullDstPath = NULL, *srcFilename = NULL;
 	char *asteriskPos, *lastSeparator;
 	bool usePattern = false;
+
+	DEBUG_STACK();
 
 	if (strchr(dstPath, '*') != NULL) {
 		return FR_INVALID_PARAMETER;					    // Wildcards not allowed in destination path
@@ -2340,9 +2356,6 @@ void mos_SETRTC(uint24_t address)
 uint24_t mos_SETINTVECTOR(uint8_t vector, uint24_t address)
 {
 	void (*handler)(void) = (void *)address;
-#if DEBUG > 0
-	printf("@mos_SETINTVECTOR: %02X,%06X\n\r", vector, address);
-#endif
 	return (uint24_t)set_vector(vector, handler);
 }
 

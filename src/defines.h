@@ -13,7 +13,6 @@
 #ifndef MOS_DEFINES_H
 #define MOS_DEFINES_H
 
-#define DEBUG 0 // Set to 0 for production, 1 for extra debug information
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
@@ -41,6 +40,14 @@ extern int _len_data;
 
 #define SPL_STACK_SIZE 2048
 #define HEAP_LEN ((int)__heaptop - (int)__heapbot)
+
+#ifdef DEBUG
+extern uint24_t stack_highwatermark;
+void record_stack_highwatermark();
+#define DEBUG_STACK() record_stack_highwatermark()
+#else
+#define DEBUG_STACK()
+#endif /* DEBUG */
 
 // VDP specific (for VDU 23,0,n commands)
 //

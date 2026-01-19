@@ -1,6 +1,31 @@
 		.assume adl = 1	
 		.global _on_crash
+		.global _record_stack_highwatermark
+		.global _stack_highwatermark
+		.data
+_stack_highwatermark:
+		.d24 __stack
 		.text
+_record_stack_highwatermark:
+		push hl
+		push de
+		ld hl,0
+		add hl,sp
+		ld de,0xb0000
+		or a
+		sbc hl,de
+		jr c,1f		; ignore stacks moved by user below 0xb0000
+		add hl,de
+		ld de,(_stack_highwatermark)
+		or a
+		sbc hl,de
+		jr nc,1f	; not new 'highest'
+		add hl,de
+		ld (_stack_highwatermark),hl
+	1:
+		pop de
+		pop hl
+		ret
 _on_crash:
 		di
 		push iy

@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if DEBUG > 0
+#ifdef DEBUG
 
 #define MG_MAX_ITEMS 64
 #define MG_ITERS 1000
