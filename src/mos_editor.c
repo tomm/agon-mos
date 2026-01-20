@@ -25,6 +25,7 @@
 #include "strings.h"
 #include "timer.h"
 #include "uart.h"
+#include "vkey.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -490,35 +491,41 @@ uint24_t mos_EDITLINE(char *buffer, int bufferLength, uint8_t flags)
 		//
 		// First any extended (non-ASCII keys)
 		//
-		case 0x85: { // HOME
+		case VK_HOME: {	    // HOME
 			insertPos = gotoEditLineStart(insertPos);
 		} break;
-		case 0x87: { // END
+		case VK_END: {	    // END
 			insertPos = gotoEditLineEnd(insertPos, len);
 		} break;
 
-		case 0x92: { // PgUp
+		case VK_PAGEUP: {   // PgUp
 			historyAction = 2;
 		} break;
 
-		case 0x94: { // PgDn
+		case VK_PAGEDOWN: { // PgDn
 			historyAction = 3;
 		} break;
 
-		case 0x9F:   // F1
-		case 0xA0:   // F2
-		case 0xA1:   // F3
-		case 0xA2:   // F4
-		case 0xA3:   // F5
-		case 0xA4:   // F6
-		case 0xA5:   // F7
-		case 0xA6:   // F8
-		case 0xA7:   // F9
-		case 0xA8:   // F10
-		case 0xA9:   // F11
-		case 0xAA:   // F12
-		{
-			uint8_t fkey = ev.vkey - 0x9F;
+		case VK_LEFT:
+		case VK_KP_LEFT:
+			if (insertPos > 0) {
+				doLeftCursor();
+				insertPos--;
+			}
+			break;
+		case VK_F1:
+		case VK_F2:
+		case VK_F3:
+		case VK_F4:
+		case VK_F5:
+		case VK_F6:
+		case VK_F7:
+		case VK_F8:
+		case VK_F9:
+		case VK_F10:
+		case VK_F11:
+		case VK_F12: {
+			uint8_t fkey = ev.vkey - VK_F1;
 			if (enableHotkeys && handleHotkey(fkey, buffer, bufferLength, insertPos, len)) {
 				len = strlen(buffer);
 				insertPos = len;
@@ -543,14 +550,14 @@ uint24_t mos_EDITLINE(char *buffer, int bufferLength, uint8_t flags)
 				case 0x1:		   // CTRL-A
 					insertPos = gotoEditLineStart(insertPos);
 					break;
-				case 0x5:		   // CTRL-E
-					insertPos = gotoEditLineEnd(insertPos, len);
-					break;
-				case 0x08:		   // Cursor Left
+				case 0x2:		   // ctrl-b
 					if (insertPos > 0) {
 						doLeftCursor();
 						insertPos--;
 					}
+					break;
+				case 0x5:		   // CTRL-E
+					insertPos = gotoEditLineEnd(insertPos, len);
 					break;
 				case 0x09:		   // Tab
 					if (enableTab) {
@@ -574,6 +581,7 @@ uint24_t mos_EDITLINE(char *buffer, int bufferLength, uint8_t flags)
 				case 0x10:		   // CTRL-P
 					historyAction = 2; // Previous history item
 					break;
+				case 0x6:		   // ctrl-f
 				case 0x15:		   // Cursor Right
 					if (insertPos < len) {
 						doRightCursor();
@@ -587,6 +595,7 @@ uint24_t mos_EDITLINE(char *buffer, int bufferLength, uint8_t flags)
 				case 0x1B: // Escape
 					keyr = keya;
 					break;
+				case 0x08: // CTRL-h
 				case 0x7F: // Backspace
 					if (deleteCharacter(buffer, insertPos, len)) {
 						insertPos--;
