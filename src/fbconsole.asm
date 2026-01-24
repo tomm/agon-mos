@@ -95,6 +95,8 @@ _stop_fbterm:
 		rst.lil 0x20
 		ld a,255
 		ld (_fb_mode),a
+		xor a
+		ld (fbterm_flags),a
 		ret
 
 ; returns zero on success, non-zero on error
@@ -619,6 +621,7 @@ do_scroll_if_needed:
 		ld a,(fbterm_flags)
 		and FLAG_DELAYED_SCROLL
 		ret z
+		ld a,(fbterm_flags)
 		xor FLAG_DELAYED_SCROLL
 		ld (fbterm_flags),a
 
