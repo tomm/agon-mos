@@ -413,7 +413,7 @@ static void do_tab_complete(char *buffer, int buffer_len, int *out_InsertPos)
 		tab_complete_state_showall = true;
 	}
 	bool do_full_redraw = false;
-	if (num_chars_added > 0) {
+	if (num_chars_added > 0 || (num_chars_added == 0 && tab_ctx.num_matches == 1)) {
 		if (tab_ctx.num_matches == 1 && tab_ctx.expansion[num_chars_added - 1] != '/') {
 			strbuf_append(tab_ctx.expansion, sizeof(tab_ctx.expansion), " ", 1);
 		}
