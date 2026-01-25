@@ -1,3 +1,5 @@
+#include "console.h"
+#include "formatting.h"
 #include "globals.h"
 #include "uart.h"
 #include "version.h"
@@ -14,6 +16,7 @@ static uint8_t quickrand(void)
 
 static void rainbow_msg(char *msg)
 {
+	const uint8_t fgcol = active_console->get_fg_color_index();
 	uint8_t i = quickrand() & (scrcolours - 1);
 	if (strcmp(msg, "Rainbow") != 0) {
 		printf("%s", msg);
@@ -27,8 +30,7 @@ static void rainbow_msg(char *msg)
 		putch(*msg);
 		i = (i + 1 < scrcolours) ? i + 1 : 1;
 	}
-	putch(17);
-	putch(15);
+	set_color(fgcol);
 }
 
 void mos_bootmsg(void)
