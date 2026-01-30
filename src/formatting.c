@@ -94,11 +94,12 @@ void paginated_putch(uint8_t c)
 			paginated_putch(' ');
 		return;
 	} else if (c == '\n') {
-		putch('\r');
 		if (!paginated_suppress_lf) {
+			putch('\r');
 			putch('\n');
 			handle_newline();
 		}
+		paginated_suppress_lf = false;
 		return;
 	} else {
 		if (c < 32 || c == 127) {
