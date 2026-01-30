@@ -531,10 +531,10 @@ _interpret_char:
 		jp .end
 
 	.handle_lf:
-		call move_cursor_down
 		push af
 		call do_scroll_if_needed
 		pop af
+		call move_cursor_down
 		jp .end
 
 	.handle_gohome:
@@ -557,7 +557,9 @@ _interpret_char:
 		jp .end
 
 	.handle_cr:
-		call clear_delayed_scroll
+		push af
+		call do_scroll_if_needed
+		pop af
 		xor a
 		ld (_fb_curs_x),a
 		call update_curs_ptr
