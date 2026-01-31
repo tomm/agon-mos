@@ -2491,6 +2491,11 @@ uint24_t mos_FBMODE(int req_mode)
 		return MOS_NOT_IMPLEMENTED;
 	}
 
+	if (fb_scanline_offsets) {
+		umm_free(fb_scanline_offsets);
+		fb_scanline_offsets = NULL;
+	}
+
 	if (req_mode == -1) {
 		stop_fbterm();
 		console_enable_vdp();
@@ -2507,9 +2512,6 @@ uint24_t mos_FBMODE(int req_mode)
 
 	void *fb_base = (void *)((int)__MOS_systemAddress - SPL_STACK_SIZE - minfo->width * minfo->height);
 
-	if (fb_scanline_offsets) {
-		umm_free(fb_scanline_offsets);
-	}
 	fb_scanline_offsets = umm_malloc(sizeof(void *) * minfo->height * minfo->scan_multiplier);
 
 	return start_fbterm(set_mode, fb_base, fb_scanline_offsets);
