@@ -84,7 +84,7 @@ bool vdpSupportsTextPalette = false;
 
 // Array of MOS commands and pointer to the C function to run
 // NB this list is iterated over, so the order is important
-// both for abbreviations and for the help command
+// for the help command
 //
 static t_mosCommand mosCommands[] = {
 	{ "CAT", &mos_cmdDIR, HELP_CAT_ARGS, HELP_CAT },
@@ -240,36 +240,12 @@ t_mosCommand *mos_getCommand(char *ptr)
 	t_mosCommand *cmd;
 	for (i = 0; i < mosCommands_count; i++) {
 		cmd = &mosCommands[i];
-		if (mos_cmp(cmd->name, ptr) == 0) {
+		if (strncasecmp(cmd->name, ptr, 256) == 0) {
 			// return cmd->func;
 			return cmd;
 		}
 	}
 	return NULL;
-}
-
-// Case insensitive commpare with abbreviations
-// Parameters:
-// - p1: The command to be compared against
-// - p2: The inputted command
-//
-bool mos_cmp(const char *p1, const char *p2)
-{
-	char c1;
-	char c2;
-	int i = 0;
-	do {
-		c1 = toupper(*p1++);
-		c2 = toupper(*p2++);
-		if (i != 0 && c2 == '.') {
-			c1 = 0;
-			c2 = 0;
-		}
-		if (c1 < 0x20) c1 = 0;
-		if (c2 < 0x20) c2 = 0;
-		i++;
-	} while (c1 && c2 && c1 == c2);
-	return c1 - c2;
 }
 
 // String trim function

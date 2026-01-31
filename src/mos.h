@@ -2,33 +2,6 @@
  * Title:			AGON MOS - MOS code
  * Author:			Dean Belfield
  * Created:			10/07/2022
- * Last Updated:	11/11/2023
- *
- * Modinfo:
- * 11/07/2022:		Removed mos_cmdBYE, Added mos_cmdLOAD
- * 12/07/2022:		Added mos_cmdJMP
- * 13/07/2022:		Added mos_cmdSAVE
- * 14/07/2022:		Added mos_cmdRUN
- * 24/07/2022:		Added mos_getkey
- * 03/08/2022:		Added a handful of MOS API calls
- * 05/08/2022:		Added mos_FEOF
- * 05/09/2022:		Added mos_cmdREN, mos_cmdBOOT; moved mos_EDITLINE into mos_editline.c
- * 25/09/2022:		Added mos_GETERROR, mos_MKDIR
- * 13/10/2022:		Added mos_OSCLI and supporting code
- * 20/10/2022:		Tweaked error handling
- * 13/11/2022:		Added mos_cmp
- * 21/11/2022:		Added support for passing params to executables & ADL mode
- * 14/02/2023:		Added mos_cmdVDU
- * 20/02/2023:		Function mos_getkey now returns a uint8_t
- * 09/03/2023:		Added mos_cmdTIME, mos_cmdCREDITS, mos_DIR now accepts a path
- * 14/03/2023:		Added mos_cmdCOPY and mos_COPY
- * 15/03/2023:		Added mos_GETRTC, mos_SETRTC
- * 21/03/2023:		Added mos_SETINTVECTOR
- * 14/04/2023:		Added fat_EOF
- * 15/04/2023:		Added mos_GETFIL, mos_FREAD, mos_FWRITE, mos_FLSEEK
- * 30/05/2023:		Function mos_FGETC now returns EOF flag
- * 08/07/2023		Added mos_trim function
- * 11/11/2023:		Added mos_cmdHELP, mos_cmdTYPE, mos_cmdCLS, mos_cmdMOUNT
  */
 
 #ifndef MOS_H
@@ -64,7 +37,6 @@ uint8_t mos_getkey(void);
 uint24_t mos_input(char *buffer, int bufferLength);
 void mos_print_prompt(void);
 t_mosCommand *mos_getCommand(char *ptr);
-bool mos_cmp(const char *p1, const char *p2);
 char *mos_trim(char *s);
 char *mos_strtok(char *s1, char *s2);
 char *mos_strtok_r(char *s1, const char *s2, char **ptr);
