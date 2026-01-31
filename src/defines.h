@@ -39,7 +39,11 @@ extern int8_t __data_len[];
 extern int8_t _low_romdata[];
 extern int _len_data;
 
-#define SPL_STACK_SIZE 2048
+// Just guaranteed space before bumping into a potential GPIO framebuffer.
+// Since SP starts at bottom of MOS ram (0xbe000), it really can be used
+// all the way down user RAM
+#define SPL_STACK_SIZE 5856
+
 #define HEAP_LEN ((int)__heaptop - (int)__heapbot)
 
 #ifdef DEBUG
