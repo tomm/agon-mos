@@ -335,9 +335,15 @@ static void try_tab_expand_argument(struct tab_expansion_context *ctx)
 		word_start++;
 	}
 
-	const int count = ctx->cmdline_insertpos - (word_start - ctx->cmdline);
+	const size_t word_len = ctx->cmdline_insertpos - (word_start - ctx->cmdline);
+
+	// don't autocomplete filename arguments containing wildcards
+	if (slice_strrchr(word_start, word_len, '*') || slice_strrchr(word_start, word_len, '?')) {
+		return;
+	}
+
 	search_prefix[0] = 0;
-	strbuf_append(search_prefix, sizeof(search_prefix), word_start, count);
+	strbuf_append(search_prefix, sizeof(search_prefix), word_start, word_len);
 	strbuf_append(search_prefix, sizeof(search_prefix), "*", 1);
 
 	char *last_slash = strrchr(search_prefix, '/');
