@@ -45,11 +45,6 @@ typedef struct {
 	char *help;
 } t_mosCommand;
 
-typedef struct {
-	uint8_t free;
-	FIL fileObject;
-} t_mosFileObject;
-
 /**
  * MOS-specific return codes
  * These extend the FatFS return codes FRESULT

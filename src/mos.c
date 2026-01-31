@@ -78,7 +78,7 @@ static char *mos_strtok_ptr;					     // Pointer for current position in string 
 TCHAR cwd[256];							     // Hold current working directory.
 bool sdcardDelay = false;
 
-t_mosFileObject mosFileObjects[MOS_maxOpenFiles];
+static FIL* mosFileObjects[MOS_maxOpenFiles];
 
 bool vdpSupportsTextPalette = false;
 
@@ -1178,6 +1178,9 @@ int mos_cmdCREDITS(char *ptr)
 	printf("FatFS R0.14b (c) 2021 ChaN\n\r");
 	printf("umm_malloc Copyright (c) 2015 Ralph Hempel\n\r");
 	printf("\n\r");
+#ifdef DEBUG
+	printf("This is a DEBUG build\r\n");
+#endif /* DEBUG */
 	return 0;
 }
 
@@ -2143,11 +2146,17 @@ uint24_t mos_FOPEN(char *filename, uint8_t mode)
 	int i;
 
 	for (i = 0; i < MOS_maxOpenFiles; i++) {
-		if (mosFileObjects[i].free == 0) {
-			fr = f_open(&mosFileObjects[i].fileObject, filename, mode);
+		if (mosFileObjects[i] == NULL) {
+			FIL *f = umm_malloc(sizeof(FIL));
+			if (!f) return MOS_OUT_OF_MEMORY;
+
+			fr = f_open(f, filename, mode);
 			if (fr == FR_OK) {
-				mosFileObjects[i].free = 1;
+				mosFileObjects[i] = f;
 				return i + 1;
+			} else {
+				umm_free(f);
+				return 0;
 			}
 		}
 	}
@@ -2167,15 +2176,17 @@ uint24_t mos_FCLOSE(uint8_t fh)
 
 	if (fh > 0 && fh <= MOS_maxOpenFiles) {
 		i = fh - 1;
-		if (mosFileObjects[i].free > 0) {
-			fr = f_close(&mosFileObjects[i].fileObject);
-			mosFileObjects[i].free = 0;
+		if (mosFileObjects[i]) {
+			fr = f_close(mosFileObjects[i]);
+			umm_free(mosFileObjects[i]);
+			mosFileObjects[i] = NULL;
 		}
 	} else {
 		for (i = 0; i < MOS_maxOpenFiles; i++) {
-			if (mosFileObjects[i].free > 0) {
-				fr = f_close(&mosFileObjects[i].fileObject);
-				mosFileObjects[i].free = 0;
+			if (mosFileObjects[i]) {
+				fr = f_close(mosFileObjects[i]);
+				umm_free(mosFileObjects[i]);
+				mosFileObjects[i] = NULL;
 			}
 		}
 	}
@@ -2383,13 +2394,8 @@ uint24_t mos_SETINTVECTOR(uint8_t vector, uint24_t address)
 //
 uint24_t mos_GETFIL(uint8_t fh)
 {
-	t_mosFileObject *mfo;
-
 	if (fh > 0 && fh <= MOS_maxOpenFiles) {
-		mfo = &mosFileObjects[fh - 1];
-		if (mfo->free > 0) {
-			return (uint24_t)(&mfo->fileObject);
-		}
+		return (uint24_t)mosFileObjects[fh - 1];
 	}
 	return 0;
 }
