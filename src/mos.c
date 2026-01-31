@@ -1933,8 +1933,6 @@ uint24_t mos_COPY_API(char *srcPath, char *dstPath)
 	return mos_COPY(srcPath, dstPath, false);
 }
 
-#define CP_BUFLEN 512
-
 // Copy file
 // Parameters:
 // - srcPath: Source path of file to copy
@@ -1949,7 +1947,7 @@ uint24_t mos_COPY(char *srcPath, char *dstPath, bool verbose)
 	FIL fsrc, fdst;
 	DIR dir;
 	FILINFO *fno;
-	uint8_t *buffer;
+	uint8_t buffer[512];
 	UINT br, bw;
 	char *srcDir = NULL, *pattern = NULL, *fullSrcPath = NULL, *fullDstPath = NULL, *srcFilename = NULL;
 	char *asteriskPos, *lastSeparator;
@@ -1963,11 +1961,6 @@ uint24_t mos_COPY(char *srcPath, char *dstPath, bool verbose)
 
 	fno = umm_malloc(sizeof(FILINFO));
 	if (!fno) return MOS_OUT_OF_MEMORY;
-	buffer = umm_malloc(CP_BUFLEN);
-	if (!buffer) {
-		umm_free(fno);
-		return MOS_OUT_OF_MEMORY;
-	}
 
 	asteriskPos = strchr(srcPath, '*');
 	lastSeparator = asteriskPos ? strrchr(srcPath, '/') : NULL;
@@ -2026,7 +2019,7 @@ uint24_t mos_COPY(char *srcPath, char *dstPath, bool verbose)
 
 			if (verbose) printf("Copying %s to %s\r\n", fullSrcPath, fullDstPath);
 			while (1) {
-				fr = f_read(&fsrc, buffer, CP_BUFLEN, &br);
+				fr = f_read(&fsrc, buffer, sizeof(buffer), &br);
 				if (br == 0 || fr != FR_OK) break;
 				fr = f_write(&fdst, buffer, br, &bw);
 				if (bw < br || fr != FR_OK) break;
@@ -2074,7 +2067,7 @@ uint24_t mos_COPY(char *srcPath, char *dstPath, bool verbose)
 
 		if (verbose) printf("Copying %s to %s\r\n", srcPath, fullDstPath);
 		while (1) {
-			fr = f_read(&fsrc, buffer, CP_BUFLEN, &br);
+			fr = f_read(&fsrc, buffer, sizeof(buffer), &br);
 			if (br == 0 || fr != FR_OK) break;
 			fr = f_write(&fdst, buffer, br, &bw);
 			if (bw < br || fr != FR_OK) break;
@@ -2086,7 +2079,6 @@ uint24_t mos_COPY(char *srcPath, char *dstPath, bool verbose)
 
 cleanup:
 	umm_free(fno);
-	umm_free(buffer);
 	if (srcDir) umm_free(srcDir);
 	if (pattern) umm_free(pattern);
 	if (fullSrcPath) umm_free(fullSrcPath);
