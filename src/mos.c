@@ -75,7 +75,7 @@ extern uint8_t rtc;						     // In globals.asm
 static FATFS fs;						     // Handle for the file system
 static char *mos_strtok_ptr;					     // Pointer for current position in string tokeniser
 
-TCHAR cwd[256];							     // Hold current working directory.
+char *cwd;							     // Hold current working directory.
 bool sdcardDelay = false;
 
 static FIL* mosFileObjects[MOS_maxOpenFiles];
@@ -86,7 +86,7 @@ bool vdpSupportsTextPalette = false;
 // NB this list is iterated over, so the order is important
 // for the help command
 //
-static t_mosCommand mosCommands[] = {
+static const t_mosCommand mosCommands[] = {
 	{ "CAT", &mos_cmdDIR, HELP_CAT_ARGS, HELP_CAT },
 	{ "CD", &mos_cmdCD, HELP_CD_ARGS, HELP_CD },
 	{ "CDIR", &mos_cmdCD, HELP_CD_ARGS, HELP_CD },
@@ -131,7 +131,7 @@ static t_mosCommand mosCommands[] = {
 
 // Array of file errors; mapped by index to the error numbers returned by FatFS
 //
-static char *mos_errors[] = {
+static const char *mos_errors[] = {
 	"OK",
 	"Error accessing SD card",
 	"Assertion failed",
@@ -173,6 +173,17 @@ void mos_error(int error)
 	if (error >= 0 && error < mos_errors_count) {
 		printf("\n\r%s\n\r", mos_errors[error]);
 	}
+}
+
+static void update_cwd()
+{
+	char buf[256];
+
+	DEBUG_STACK();
+
+	f_getcwd(buf, sizeof(buf));
+	if (cwd) umm_free(cwd);
+	cwd = mos_strndup(buf, sizeof(buf));
 }
 
 // Wait for a keycode character from the VPD
@@ -871,7 +882,7 @@ int mos_cmdCD(char *ptr)
 		return FR_INVALID_PARAMETER;
 	}
 	fr = f_chdir(path);
-	f_getcwd(cwd, sizeof(cwd)); // Update full path.
+	update_cwd();
 	return fr;
 }
 
@@ -1203,7 +1214,7 @@ int mos_cmdMOUNT(char *ptr)
 	fr = mos_mount();
 	if (fr != FR_OK)
 		mos_error(fr);
-	f_getcwd(cwd, sizeof(cwd)); // Update full path.
+	update_cwd();
 	return 0;
 }
 
@@ -1656,7 +1667,7 @@ uint24_t mos_DIR(char *inputPath, bool longListing)
 		paginated_printf("\n");
 
 		if (strcmp(dirPath, ".") == 0) {
-			f_getcwd(cwd, sizeof(cwd));
+			update_cwd();
 			paginated_printf("Directory: %s\n\n", cwd);
 		} else
 			paginated_printf("Directory: %s\n\n", dirPath);
@@ -2400,7 +2411,7 @@ int mos_mount(void)
 {
 	int ret = f_mount(&fs, "", 1);	    // Mount the SD card
 	if (ret == FR_OK) {
-		f_getcwd(cwd, sizeof(cwd)); // update current working directory
+		update_cwd();
 	}
 	return ret;
 }

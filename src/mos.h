@@ -106,7 +106,7 @@ void mos_SETRTC(uint24_t address);
 uint24_t mos_SETINTVECTOR(uint8_t vector, uint24_t address);
 uint24_t mos_GETFIL(uint8_t fh);
 
-extern TCHAR cwd[256];
+extern TCHAR *cwd;
 extern bool sdcardDelay;
 
 uint8_t fat_EOF(FIL *fp);
