@@ -80,7 +80,7 @@ uint24_t mos_SAVE(char *filename, uint24_t address, uint24_t size);
 uint24_t mos_TYPE(char *filename);
 uint24_t mos_CD(char *path);
 uint24_t mos_DIR_API(char *path);
-uint24_t mos_DIR(char *path, bool longListing);
+uint24_t mos_DIR(const char path[static 1], bool longListing);
 uint24_t mos_DEL(char *filename);
 uint24_t mos_REN_API(char *srcPath, char *dstPath);
 uint24_t mos_REN(char *srcPath, char *dstPath, bool verbose);

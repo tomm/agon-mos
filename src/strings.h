@@ -16,6 +16,9 @@ char *mos_strdup(const char *s);
 // Alternative to missing strndup() in ZDS libraries
 char *mos_strndup(const char *s, size_t n);
 
+/* Find a '/' or '\' in path, starting from the end */
+const char *strrchr_pathsep(const char *path);
+
 void strbuf_append(char *buf, int buf_capacity, const char *str_to_append, int max_chars_to_append);
 void strbuf_insert(char *buf, int buf_capacity, const char *src, int insert_loc);
 

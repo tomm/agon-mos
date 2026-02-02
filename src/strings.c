@@ -69,3 +69,11 @@ void strbuf_append(char *buf, int buf_capacity, const char *str_to_append, int m
 
 	buf[insert_loc + count] = 0;
 }
+
+const char *strrchr_pathsep(const char *path)
+{
+	if (path == NULL) return NULL;
+	const char *p = strrchr(path, '/');
+	if (p) return p;
+	return strrchr(path, '\\');
+}

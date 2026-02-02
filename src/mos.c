@@ -58,6 +58,7 @@
 #include "fbconsole.h"
 #include "formatting.h"
 #include "globals.h"
+#include "vec.h"
 #endif								     /* FEAT_FRAMEBUFFER */
 #ifdef DEBUG
 #include "tests.h"
@@ -78,7 +79,7 @@ static char *mos_strtok_ptr;					     // Pointer for current position in string 
 char *cwd;							     // Hold current working directory.
 bool sdcardDelay = false;
 
-static FIL* mosFileObjects[MOS_maxOpenFiles];
+static FIL *mosFileObjects[MOS_maxOpenFiles];
 
 bool vdpSupportsTextPalette = false;
 
@@ -1499,61 +1500,61 @@ uint24_t mos_DIR_API(char *inputPath)
 	return mos_DIR(inputPath, true);
 }
 
-uint24_t mos_DIRFallback(char *path, bool longListing, bool hideVolumeInfo)
+uint24_t mos_DIRFallback(const char path[static 1], const char *pattern, bool longListing)
 {
 	FRESULT fr;
 	DIR dir;
 	FILINFO fno;
 	int yr, mo, da, hr, mi;
 	char str[12];
-	int col = 0;
 
 	DEBUG_STACK();
 
-	if (!hideVolumeInfo) {
-		fr = f_getlabel("", str, 0);
-		if (fr != 0) {
-			return fr;
-		}
-		printf("Volume: ");
-		if (strlen(str) > 0) {
-			printf("%s", str);
-		} else {
-			printf("<No Volume Label>");
-		}
-		printf("\n\r\n\r");
+	fr = f_getlabel("", str, 0);
+	if (fr != 0) {
+		return fr;
 	}
 
 	fr = f_opendir(&dir, path);
-	if (fr == FR_OK) {
-		for (;;) {
-			fr = f_readdir(&dir, &fno);
-			if (fr != FR_OK || fno.fname[0] == 0) {
-				break;				 // Break on error or end of dir
-			}
-			if (longListing) {
-				yr = (fno.fdate & 0xFE00) >> 9;	 // Bits 15 to  9, from 1980
-				mo = (fno.fdate & 0x01E0) >> 5;	 // Bits  8 to  5
-				da = (fno.fdate & 0x001F);	 // Bits  4 to  0
-				hr = (fno.ftime & 0xF800) >> 11; // Bits 15 to 11
-				mi = (fno.ftime & 0x07E0) >> 5;	 // Bits 10 to  5
+	if (fr != FR_OK) return fr;
 
-				printf("%04d/%02d/%02d\t%02d:%02d %c %*lu %s\n\r", yr + 1980, mo, da, hr, mi, fno.fattrib & AM_DIR ? 'D' : ' ', 8, fno.fsize, fno.fname);
-			} else {
-				if (col + strlen(fno.fname) + 2 >= scrcols) {
-					printf("\r\n");
-					col = 0;
-				}
-				printf("%s  ", fno.fname);
-				col += strlen(fno.fname) + 2;
-			}
+	paginated_start(true);
+	paginated_printf("Volume: ");
+	if (strlen(str) > 0) {
+		paginated_printf("%s", str);
+	} else {
+		paginated_printf("<No Volume Label>");
+	}
+	paginated_printf("\n\n");
+
+	if (pattern) {
+		fr = f_findfirst(&dir, &fno, path, pattern);
+	} else {
+		fr = f_readdir(&dir, &fno);
+	}
+	while (!paginated_exit) {
+		if (fr != FR_OK || fno.fname[0] == 0) {
+			break;				 // Break on error or end of dir
+		}
+		if (longListing) {
+			yr = (fno.fdate & 0xFE00) >> 9;	 // Bits 15 to  9, from 1980
+			mo = (fno.fdate & 0x01E0) >> 5;	 // Bits  8 to  5
+			da = (fno.fdate & 0x001F);	 // Bits  4 to  0
+			hr = (fno.ftime & 0xF800) >> 11; // Bits 15 to 11
+			mi = (fno.ftime & 0x07E0) >> 5;	 // Bits 10 to  5
+
+			paginated_printf("%04d/%02d/%02d %02d:%02d %c %*lu %s\n", yr + 1980, mo, da, hr, mi, fno.fattrib & AM_DIR ? 'D' : ' ', 8, fno.fsize, fno.fname);
+		} else {
+			paginated_printf("%s%s\n", fno.fname, fno.fattrib & AM_DIR ? "/" : "");
+		}
+		if (pattern) {
+			fr = f_findnext(&dir, &fno);
+		} else {
+			fr = f_readdir(&dir, &fno);
 		}
 	}
-	if (!longListing) {
-		printf("\r\n");
-	}
-
 	f_closedir(&dir);
+
 	return fr;
 }
 
@@ -1561,24 +1562,22 @@ uint24_t mos_DIRFallback(char *path, bool longListing, bool hideVolumeInfo)
 // Returns:
 // - FatFS return code
 //
-uint24_t mos_DIR(char *inputPath, bool longListing)
+uint24_t mos_DIR(const char inputPath[static 1], bool longListing)
 {
 	FRESULT fr;
 	DIR dir;
-	char *dirPath = NULL, *pattern = NULL;
+	char *dirPath = NULL;
+	const char *pattern = NULL;
 	bool usePattern = false;
 	bool useColour = scrcolours > 2 && vdpSupportsTextPalette;
 	char str[12]; // Buffer for volume label
-	int yr, mo, da, hr, mi;
 	int longestFilename = 0;
-	int filenameLength = 0;
 	FILINFO filinfo;
 	uint8_t textBg;
 	uint8_t textFg = 15;
 	uint8_t dirColour = get_secondary_color();
 	uint8_t fileColour = 15;
-	SmallFilInfo *fnos = NULL, *fno = NULL;
-	int num_dirents, fno_num;
+	Vec entries;
 
 	DEBUG_STACK();
 
@@ -1587,61 +1586,25 @@ uint24_t mos_DIR(char *inputPath, bool longListing)
 		return fr;
 	}
 
-	if (strchr(inputPath, '/') == NULL && strchr(inputPath, '*') != NULL) {
-		dirPath = mos_strdup(".");
-		if (!dirPath) {
-			fr = mos_DIRFallback(inputPath, longListing, false);
-			goto cleanup;
-		}
-		pattern = mos_strdup(inputPath);
-		if (!pattern) {
-			fr = mos_DIRFallback(inputPath, longListing, false);
-			goto cleanup;
-		}
-		usePattern = true;
-	} else if (strcmp(inputPath, ".") == 0) {
-		dirPath = mos_strdup(".");
-		if (!dirPath) {
-			fr = mos_DIRFallback(inputPath, longListing, false);
-			goto cleanup;
-		}
-	} else if (inputPath[0] == '/' && strchr(inputPath + 1, '/') == NULL) {
-		dirPath = mos_strdup("/");
-		if (!dirPath) {
-			fr = mos_DIRFallback(inputPath, longListing, false);
-			goto cleanup;
-		}
-		if (strchr(inputPath + 1, '*') != NULL) {
-			pattern = mos_strdup(inputPath + 1);
-			if (!pattern) {
-				fr = mos_DIRFallback(inputPath, longListing, false);
-				goto cleanup;
-			}
+	vec_init(&entries, sizeof(SmallFilInfo));
+
+	// Extract directory and possibly glob pattern
+	{
+		const char *last_path_elem = strrchr_pathsep(inputPath);
+		last_path_elem = last_path_elem ? last_path_elem + 1 : inputPath;
+		if (strchr(last_path_elem, '?') != 0 || strchr(last_path_elem, '*') != 0) {
 			usePattern = true;
-		}
-	} else {
-		char *lastSeparator = strrchr(inputPath, '/');
-		if (lastSeparator != NULL && *(lastSeparator + 1) != '\0') {
-			dirPath = mos_strndup(inputPath, lastSeparator - inputPath + 1);
-			if (!dirPath) {
-				fr = mos_DIRFallback(inputPath, longListing, false);
-				goto cleanup;
-			}
-			dirPath[lastSeparator - inputPath + 1] = '\0';
-			pattern = mos_strdup(lastSeparator + 1);
-			if (!pattern) {
-				fr = mos_DIRFallback(inputPath, longListing, false);
-				goto cleanup;
-			}
-			usePattern = true;
+			pattern = last_path_elem;
+			dirPath = mos_strndup(inputPath, last_path_elem - inputPath);
 		} else {
 			dirPath = mos_strdup(inputPath);
-			if (!dirPath) {
-				fr = mos_DIRFallback(inputPath, longListing, false);
-				goto cleanup;
-			}
+		}
+		if (!dirPath) {
+			fr = mos_DIRFallback(inputPath, NULL, longListing);
+			goto cleanup;
 		}
 	}
+	// printf("dirPath %s, pattern %s\n", dirPath, pattern ? pattern : "(none)");
 
 	if (useColour) {
 		textFg = active_console->get_fg_color_index();
@@ -1652,129 +1615,126 @@ uint24_t mos_DIR(char *inputPath, bool longListing)
 		}
 	}
 
-	fno_num = 0;
 	fr = f_opendir(&dir, dirPath);
+	if (fr != FR_OK) {
+		goto cleanup;
+	}
 
-	paginated_start(true);
+	if (usePattern) {
+		fr = f_findfirst(&dir, &filinfo, dirPath, pattern);
+	} else {
+		fr = f_readdir(&dir, &filinfo);
+	}
 
-	if (fr == FR_OK) {
-		paginated_printf("Volume: ");
-		if (strlen(str) > 0) {
-			paginated_printf("%s", str);
-		} else {
-			paginated_printf("<No Volume Label>");
+	// Collect the entries into entries vector
+	while (fr == FR_OK && filinfo.fname[0]) {
+		SmallFilInfo entry;
+
+		entry.fsize = filinfo.fsize;
+		entry.fdate = filinfo.fdate;
+		entry.ftime = filinfo.ftime;
+		entry.fattrib = filinfo.fattrib;
+		const int fname_len = strlen(filinfo.fname);
+		entry.fname = mos_strndup(filinfo.fname, 256);
+		if (!entry.fname) {
+			goto oom_fallback;
 		}
-		paginated_printf("\n");
-
-		if (strcmp(dirPath, ".") == 0) {
-			update_cwd();
-			paginated_printf("Directory: %s\n\n", cwd);
-		} else
-			paginated_printf("Directory: %s\n\n", dirPath);
-
-		fr = get_num_dirents(dirPath, &num_dirents);
-
-		if (num_dirents == 0) {
-			paginated_printf("No files found\n");
-			goto cleanup;
+		if (fname_len > longestFilename) {
+			longestFilename = fname_len;
 		}
 
-		fnos = umm_malloc(sizeof(SmallFilInfo) * num_dirents);
-		if (!fnos) {
-			fr = mos_DIRFallback(inputPath, longListing, true);
+		if (!vec_push(&entries, &entry)) {
+			// out-of-memory
+			umm_free(entry.fname);
 			goto cleanup;
 		}
 
 		if (usePattern) {
-			fr = f_findfirst(&dir, &filinfo, dirPath, pattern);
+			fr = f_findnext(&dir, &filinfo);
 		} else {
 			fr = f_readdir(&dir, &filinfo);
 		}
 
-		while (fr == FR_OK && filinfo.fname[0]) {
-			fnos[fno_num].fsize = filinfo.fsize;
-			fnos[fno_num].fdate = filinfo.fdate;
-			fnos[fno_num].ftime = filinfo.ftime;
-			fnos[fno_num].fattrib = filinfo.fattrib;
-			filenameLength = strlen(filinfo.fname) + 1;
-			fnos[fno_num].fname = umm_malloc(filenameLength);
-			if (!fnos[fno_num].fname) {
-				fr = mos_DIRFallback(inputPath, longListing, true);
-				while (fno_num > 0) {
-					umm_free(fnos[--fno_num].fname);
-				}
-				goto cleanup;
-			}
-			strcpy(fnos[fno_num].fname, filinfo.fname);
-			if (filenameLength > longestFilename) {
-				longestFilename = filenameLength;
-			}
-			fno_num++;
-
-			if (usePattern) {
-				fr = f_findnext(&dir, &filinfo);
-			} else {
-				fr = f_readdir(&dir, &filinfo);
-			}
-
-			if (!usePattern && filinfo.fname[0] == 0)
-				break;
-		}
+		if (!usePattern && filinfo.fname[0] == 0)
+			break;
 	}
 	f_closedir(&dir);
 
-	if (fr == FR_OK) {
-		int col = 0;
-		int maxCols = MAX(1, scrcols / longestFilename);
+	int col = 0;
 
-		num_dirents = fno_num;
-		qsort(fnos, num_dirents, sizeof(SmallFilInfo), (int (*)(const void *, const void *)) & cmp_filinfo);
-		fno_num = 0;
+	// Pad one space. Don't exceed screen length
+	longestFilename = MIN(scrcols, longestFilename + 1);
+	int maxCols = MAX(1, scrcols / longestFilename);
 
-		for (; fno_num < num_dirents; fno_num++) {
-			if (paginated_exit) break;
-			fno = &fnos[fno_num];
-			if (longListing) {
-				yr = (fno->fdate & 0xFE00) >> 9;  // Bits 15 to  9, from 1980
-				mo = (fno->fdate & 0x01E0) >> 5;  // Bits  8 to  5
-				da = (fno->fdate & 0x001F);	  // Bits  4 to  0
-				hr = (fno->ftime & 0xF800) >> 11; // Bits 15 to 11
-				mi = (fno->ftime & 0x07E0) >> 5;  // Bits 10 to  5
+	if (entries.len > 1) {
+		qsort(entries.data, entries.len, sizeof(SmallFilInfo), (int (*)(const void *, const void *)) & cmp_filinfo);
+	}
 
-				bool isDir = fno->fattrib & AM_DIR;
-				if (useColour) set_color(textFg);
-				paginated_printf("%04d/%02d/%02d\t%02d:%02d %c %*lu ", yr + 1980, mo, da, hr, mi, isDir ? 'D' : ' ', 8, fno->fsize);
-				if (useColour) set_color(isDir ? dirColour : fileColour);
-				paginated_printf("%s\n", fno->fname);
-			} else {
-				if (col == maxCols) {
-					col = 0;
-					paginated_printf("\n");
-				}
+	paginated_start(true);
+	paginated_printf("Volume: ");
+	if (strlen(str) > 0) {
+		paginated_printf("%s", str);
+	} else {
+		paginated_printf("<No Volume Label>");
+	}
+	paginated_printf("\n");
 
-				if (useColour) {
-					set_color(fno->fattrib & AM_DIR ? dirColour : fileColour);
-				}
-				paginated_printf("%-*s", col == (maxCols - 1) ? longestFilename - 1 : longestFilename, fno->fname);
-				col++;
+	if (strcmp(dirPath, ".") == 0) {
+		update_cwd();
+		paginated_printf("Directory: %s\n\n", cwd);
+	} else
+		paginated_printf("Directory: %s\n\n", dirPath);
+
+	for (size_t fno_num; fno_num < entries.len; fno_num++) {
+		if (paginated_exit) break;
+		struct SmallFilInfo *fno = vec_get(&entries, fno_num);
+		if (longListing) {
+			int yr, mo, da, hr, mi;
+			yr = (fno->fdate & 0xFE00) >> 9;  // Bits 15 to  9, from 1980
+			mo = (fno->fdate & 0x01E0) >> 5;  // Bits  8 to  5
+			da = (fno->fdate & 0x001F);	  // Bits  4 to  0
+			hr = (fno->ftime & 0xF800) >> 11; // Bits 15 to 11
+			mi = (fno->ftime & 0x07E0) >> 5;  // Bits 10 to  5
+
+			bool isDir = fno->fattrib & AM_DIR;
+			if (useColour) set_color(textFg);
+			paginated_printf("%04d/%02d/%02d %02d:%02d %c %*lu ", yr + 1980, mo, da, hr, mi, isDir ? 'D' : ' ', 8, fno->fsize);
+			if (useColour) set_color(isDir ? dirColour : fileColour);
+			paginated_printf("%s\n", fno->fname);
+		} else {
+			if (col == maxCols) {
+				col = 0;
+				paginated_printf("\n");
 			}
-			umm_free(fno->fname);
+
+			if (useColour) {
+				set_color(fno->fattrib & AM_DIR ? dirColour : fileColour);
+			}
+			paginated_printf("%-*s", col == (maxCols - 1) ? longestFilename - 1 : longestFilename, fno->fname);
+			col++;
 		}
 	}
 
 	if (!longListing) {
 		paginated_printf("\n");
 	}
-	umm_free(fnos);
 
 	if (useColour) {
 		set_color(textFg);
 	}
 
 cleanup:
-	if (pattern) umm_free(pattern);
+	for (int i = entries.len - 1; i >= 0; i--) {
+		struct SmallFilInfo *entry = vec_get(&entries, i);
+		if (entry->fname) umm_free(entry->fname);
+	}
+	vec_free(&entries);
 	if (dirPath) umm_free(dirPath);
 	return fr;
+
+oom_fallback:
+	fr = mos_DIRFallback(dirPath, pattern, longListing);
+	goto cleanup;
 }
 
 // Delete file
@@ -2409,7 +2369,7 @@ uint8_t fat_EOF(FIL *fp)
 //
 int mos_mount(void)
 {
-	int ret = f_mount(&fs, "", 1);	    // Mount the SD card
+	int ret = f_mount(&fs, "", 1); // Mount the SD card
 	if (ret == FR_OK) {
 		update_cwd();
 	}
