@@ -22,6 +22,10 @@
 			XDEF	SET_AHL24
 			XDEF	GET_AHL24
 			XDEF	SET_ADE24
+			XDEF	SET_ABC24
+			XDEF	SET_AIX24
+			XDEF	FIX_HLU24
+			XDEF	FIX_HLU24_no_mb_check
 			
 			XDEF	__exec16
 			XDEF	__exec24
@@ -75,6 +79,48 @@ SET_ADE24:		EX	DE, HL
 			LD	(HL), A
 			POP	HL
 			EX	DE, HL
+			RET
+
+; Set the MSB of BC (U) to A
+SET_ABC24:		PUSH	HL	; push current HL to stack to save it
+			PUSH	BC
+			LD	HL, 2
+			ADD	HL, SP
+			LD	(HL), A
+			POP	BC
+			POP	HL	; restore HL
+			RET
+
+; Set the MSB of IX (U) to A
+;
+SET_AIX24:		PUSH	HL
+			PUSH	IX
+			LD	HL, 2
+			ADD	HL, SP
+			LD	(HL), A
+			POP	IX
+			POP	HL
+			RET
+
+
+; Optionally set MSB of HL(U) to MB, if needed
+; Sets U of HLU to MB if MB != 0 and U is not already set
+;
+FIX_HLU24:		LD	A, MB
+			OR	A
+			RET	Z
+; Get the MSB of HLU in A (pushing HLU to the stack)
+FIX_HLU24_no_mb_check:	PUSH	HL 
+			LD	HL, 2
+			ADD	HL, SP
+			LD	A, (HL)
+			OR 	A, A
+; top byte of HLU (on stack) already set so return
+			JR	NZ, 1f
+; set top byte of HLU (on stack) to MB
+			LD	A, MB
+			LD	(HL), A
+	1:		POP	HL
 			RET
 
 ; Execute a program in RAM

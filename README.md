@@ -10,8 +10,7 @@ Rainbow MOS binaries can be flashed onto the Agon EZ80 using
 [Agon Flash](https://github.com/AgonPlatform/agon-flash).
 
 Rainbow MOS's unique features are:
-
- - Compiled with modern LLVM toolchain, not Zilog ZDS
+ - Compiled with modern AgonDev LLVM toolchain, not Zilog ZDS
  - A buffered keyboard event API that solves the issues with all the other MOS
    keyboard APIs
  - Support for framebuffer video on the eZ80 side of the Agon (with
@@ -23,10 +22,14 @@ Rainbow MOS's unique features are:
  - Built-in `memdump` command
  - Built-in `sideload` command (performs the function of `hexload vdp`)
 
+Features incorporated from Platform MOS 3.x:
+ - All ffs_api_* syscalls (FatFS API)
+
 New syscalls unique to Rainbow MOS are documented as ASM examples in
 [./examples](./examples).
 
 ## Other Links
  - [eZ80 GPIO video driver](https://github.com/tomm/vga-ez80)
+ - [AgonDev](https://github.com/AgonPlatform/agondev/)
  - [Agon Flash](https://github.com/AgonPlatform/agon-flash).
  - [Agon Platform MOS documentation](https://agonplatform.github.io/agon-docs/mos/API/)
