@@ -114,12 +114,12 @@ DWORD get_fattime(void) {
 	rtc_update();
 	rtc_unpack(&rtc, &tstruct);
 	
-	yr =  (tstruct.year - EPOCH_YEAR) << 25;
-	mo =  (tstruct.month + 1) << 21;
-	da =  tstruct.day         << 16;
-	hr =  tstruct.hour        << 11;
-	mi =  tstruct.minute      <<  5;
-	se =  tstruct.second      >>  1;
+	yr =  ((DWORD)tstruct.year - EPOCH_YEAR) << 25;
+	mo =  ((DWORD)tstruct.month + 1) << 21;
+	da =  (DWORD)tstruct.day         << 16;
+	hr =  (DWORD)tstruct.hour        << 11;
+	mi =  (DWORD)tstruct.minute      <<  5;
+	se =  (DWORD)tstruct.second      >>  1;
 
 	return se | mi | hr | da | mo | yr;
 }
