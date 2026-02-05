@@ -1072,7 +1072,7 @@ int mos_cmdTIME(char *ptr)
 	}
 	// Return the new time
 	//
-	mos_GETRTC((uint24_t)buffer);
+	mos_GETRTC(buffer);
 	printf("%s\n\r", buffer);
 	return 0;
 }
@@ -2286,15 +2286,15 @@ uint24_t mos_OSCLI(char *cmd)
 // Returns:
 // - size of string
 //
-uint8_t mos_GETRTC(uint24_t address)
+uint8_t mos_GETRTC(char buffer[static 64])
 {
 	vdp_time_t t;
 
 	rtc_update();
 	rtc_unpack(&rtc, &t);
-	rtc_formatDateTime((char *)address, &t);
+	rtc_formatDateTime(buffer, &t);
 
-	return strlen((char *)address);
+	return strlen(buffer);
 }
 
 // Set the RTC

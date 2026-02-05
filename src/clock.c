@@ -87,7 +87,7 @@ void rtc_unpack(uint8_t *buffer, vdp_time_t *t)
 
 // Format a date/time string
 //
-void rtc_formatDateTime(char *buffer, vdp_time_t *t)
+void rtc_formatDateTime(char buffer[static 64], vdp_time_t *t)
 {
-	sprintf(buffer, "%s, %02d/%02d/%4d %02d:%02d:%02d", rtc_days[t->dayOfWeek][0], t->day, t->month + 1, t->year, t->hour, t->minute, t->second);
+	snprintf(buffer, 64, "%s, %02d/%02d/%4d %02d:%02d:%02d", rtc_days[t->dayOfWeek][0], t->day, t->month + 1, t->year, t->hour, t->minute, t->second);
 }

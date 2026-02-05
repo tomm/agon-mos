@@ -102,7 +102,7 @@ uint8_t mos_FEOF(uint8_t fh);
 
 void mos_GETERROR(uint8_t errno, uint24_t address, uint24_t size);
 uint24_t mos_OSCLI(char *cmd);
-uint8_t mos_GETRTC(uint24_t address);
+uint8_t mos_GETRTC(char buffer[static 64]);
 void mos_SETRTC(uint24_t address);
 uint24_t mos_SETINTVECTOR(uint8_t vector, uint24_t address);
 uint24_t mos_GETFIL(uint8_t fh);
