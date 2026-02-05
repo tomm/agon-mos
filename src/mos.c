@@ -169,7 +169,7 @@ static const char *mos_errors[] = {
 // Parameters:
 // - error: The FatFS error number
 //
-void mos_error(int error)
+void mos_error(MOSRESULT error)
 {
 	if (error >= 0 && error < mos_errors_count) {
 		printf("\n\r%s\n\r", mos_errors[error]);
@@ -229,9 +229,9 @@ void mos_print_prompt(void)
 /**
  * Return number of characters appended to buffer
  */
-int try_tab_expand_internal_cmd(struct tab_expansion_context *ctx)
+void try_tab_expand_internal_cmd(struct tab_expansion_context *ctx)
 {
-	int i;
+	uint24_t i;
 	t_mosCommand *cmd;
 	for (i = 0; i < mosCommands_count; i++) {
 		if (strncasecmp(ctx->cmdline, mosCommands[i].name, ctx->cmdline_insertpos) == 0) {
@@ -246,10 +246,10 @@ int try_tab_expand_internal_cmd(struct tab_expansion_context *ctx)
 // Returns:
 // - Function pointer, or 0 if command not found
 //
-t_mosCommand *mos_getCommand(char *ptr)
+const t_mosCommand *mos_getCommand(char *ptr)
 {
-	int i;
-	t_mosCommand *cmd;
+	uint24_t i;
+	const t_mosCommand *cmd;
 	for (i = 0; i < mosCommands_count; i++) {
 		cmd = &mosCommands[i];
 		if (strncasecmp(cmd->name, ptr, 256) == 0) {
@@ -416,7 +416,7 @@ int mos_exec(char *buffer, bool in_mos)
 	int fr = 0;
 	char path[256];
 	uint8_t mode;
-	t_mosCommand *cmd;
+	const t_mosCommand *cmd;
 
 	ptr = mos_trim(buffer);
 	if (ptr != NULL && *ptr == '#') {
@@ -1122,14 +1122,14 @@ int mos_cmdMEM(char *ptr)
 
 int mos_cmdMEMDUMP(char *ptr)
 {
-	uint24_t addr, len;
+	size_t addr, len;
 	if (!mos_parseNumber(NULL, &addr)) {
 		return FR_INVALID_PARAMETER;
 	}
 	if (!mos_parseNumber(NULL, &len)) {
 		len = 0x100;
 	}
-	int i = 0;
+	size_t i = 0;
 	const int width = scrcols <= 40 ? 8 : 16;
 
 	paginated_start(true);
@@ -1219,10 +1219,10 @@ int mos_cmdMOUNT(char *ptr)
 	return 0;
 }
 
-static void printCommandInfo(t_mosCommand *cmd, bool full)
+static void printCommandInfo(const t_mosCommand *cmd, bool full)
 {
 	int aliases = 0;
-	int i;
+	size_t i;
 
 	if (cmd->help == NULL) return;
 
@@ -1267,7 +1267,7 @@ static void printCommandInfo(t_mosCommand *cmd, bool full)
 //
 int mos_cmdHELP(char *ptr)
 {
-	int i;
+	size_t i;
 	char *cmd;
 
 	bool hasCmd = mos_parseString(NULL, &cmd);
@@ -1282,8 +1282,8 @@ int mos_cmdHELP(char *ptr)
 			printCommandInfo(&mosCommands[i], true);
 			if (!hasCmd) {
 				// must be showing "help" command with no args, so show list of all commands
-				int col = 0;
-				int maxCol = scrcols;
+				size_t col = 0;
+				size_t maxCol = scrcols;
 				paginated_printf("List of commands:\n");
 				for (i = 1; i < mosCommands_count; ++i) {
 					if (mosCommands[i].help == NULL) continue;
@@ -1341,8 +1341,8 @@ uint24_t mos_LOAD(char *filename, uint24_t address, uint24_t size)
 			size = fSize;
 		}
 		// Check potential system area overlap
-		if ((address <= MOS_externLastRAMaddress) && ((address + size) > (int)__MOS_systemAddress)) {
-			fr = MOS_OVERLAPPING_SYSTEM;
+		if ((address <= MOS_externLastRAMaddress) && ((address + size) > (size_t)__MOS_systemAddress)) {
+			fr = (FRESULT)MOS_OVERLAPPING_SYSTEM;
 		} else {
 			fr = f_read(&fil, (void *)address, size, &br);
 		}

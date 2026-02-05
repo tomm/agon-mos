@@ -253,11 +253,11 @@ void notify_tab_expansion(struct tab_expansion_context *ctx, enum TabExpansionTy
 		set_color(oldTextFg);
 	}
 	if (ctx->num_matches == 0) {
-		int count = MIN(expansionLen, sizeof(ctx->expansion) - 1);
+		size_t count = MIN((size_t)expansionLen, sizeof(ctx->expansion) - 1);
 		memcpy(ctx->expansion, expansion, count);
 		ctx->expansion[count] = 0;
 	} else {
-		for (int j = 0; j < strlen(ctx->expansion); j++) {
+		for (size_t j = 0; j < strlen(ctx->expansion); j++) {
 			if (expansion[j] == 0 || toupper(ctx->expansion[j]) != toupper(expansion[j])) {
 				ctx->expansion[j] = 0;
 				break;
@@ -305,7 +305,7 @@ static void try_tab_expand_bin_name(struct tab_expansion_context *ctx)
 	}
 }
 
-static char *slice_strrchr(const char *s, int len, char needle)
+static const char *slice_strrchr(const char *s, int len, char needle)
 {
 	for (int i = len - 1; i >= 0; i--) {
 		if (s[i] == needle) return &s[i];
@@ -423,7 +423,7 @@ static void do_tab_complete(char *buffer, int buffer_len, int *out_InsertPos)
 		if (tab_ctx.num_matches == 1 && tab_ctx.expansion[num_chars_added - 1] != '/') {
 			strbuf_append(tab_ctx.expansion, sizeof(tab_ctx.expansion), " ", 1);
 		}
-		const bool append_at_eol = (*out_InsertPos) == strlen(buffer);
+		const bool append_at_eol = (*out_InsertPos) == (int)strlen(buffer);
 		strbuf_insert(buffer, buffer_len, tab_ctx.expansion, *out_InsertPos);
 		if (append_at_eol) {
 			printf("%s", tab_ctx.expansion);

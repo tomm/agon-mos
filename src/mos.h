@@ -7,6 +7,7 @@
 #ifndef MOS_H
 #define MOS_H
 
+#include "defines.h"
 #include "../src_fatfs/ff.h"
 
 extern char cmd[256]; // Array for the command line handler
@@ -32,11 +33,11 @@ typedef enum {
 	MOS_INVALID_PARAMETER,	  /* (26) Invalid parameter */
 } MOSRESULT;
 
-void mos_error(int error);
+void mos_error(MOSRESULT error);
 uint8_t mos_getkey(void);
 uint24_t mos_input(char *buffer, int bufferLength);
 void mos_print_prompt(void);
-t_mosCommand *mos_getCommand(char *ptr);
+const t_mosCommand *mos_getCommand(char *ptr);
 char *mos_trim(char *s);
 char *mos_strtok(char *s1, char *s2);
 char *mos_strtok_r(char *s1, const char *s2, char **ptr);
