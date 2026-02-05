@@ -20,11 +20,13 @@ void vec_free(Vec *v)
 
 void *vec_get(Vec *v, size_t index)
 {
+	kassert(index < v->len);
 	return (unsigned char *)v->data + (index * v->elem_size);
 }
 
 void vec_set(Vec *v, size_t index, const void *elem)
 {
+	kassert(index < v->len);
 	memcpy(vec_get(v, index), elem, v->elem_size);
 }
 
@@ -80,8 +82,9 @@ bool vec_push(Vec *v, const void *elem)
 	if (!_grow(v, 1)) {
 		return false;
 	}
-	vec_set(v, v->len, elem);
+	const size_t pos = v->len;
 	v->len++;
+	vec_set(v, pos, elem);
 	return true;
 }
 

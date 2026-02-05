@@ -1,6 +1,15 @@
 #ifndef VEC_H
 #define VEC_H
 
+/**
+ * Vec implementation optimized for small binary size -- not using
+ * per-type code generation. Cost of this is imul on indexing operations.
+ * This can be avoided by casting the vector->data to your type and 
+ * indexing into that.
+ *
+ * On DEBUG builds there is kassert bounds checking.
+ */
+
 #include <stdbool.h>
 #include <stdlib.h>
 
