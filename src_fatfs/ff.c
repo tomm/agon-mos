@@ -6806,7 +6806,7 @@ static void ftoa (
 #endif	/* FF_PRINT_FLOAT && FF_INTDEF == 2 */
 
 
-
+#if 0
 int f_printf (
 	FIL* fp,			/* Pointer to the file object */
 	const TCHAR* fmt,	/* Pointer to the format string */
@@ -6954,6 +6954,7 @@ int f_printf (
 
 	return putc_flush(&pb);
 }
+#endif /* 0 */
 
 #endif /* !FF_FS_READONLY */
 #endif /* FF_USE_STRFUNC */

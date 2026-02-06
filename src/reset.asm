@@ -59,7 +59,7 @@ _nmi:		jp ram_nmi_handler
         	.d24 _f_mount
         	.d24 _f_open
         	.d24 _f_opendir
-        	.d24 _f_printf
+        	.d24 0
         	.d24 _f_putc
         	.d24 _f_puts
         	.d24 _f_read
