@@ -7,8 +7,8 @@
 #ifndef MOS_H
 #define MOS_H
 
-#include "defines.h"
 #include "../src_fatfs/ff.h"
+#include "defines.h"
 
 extern char cmd[256]; // Array for the command line handler
 

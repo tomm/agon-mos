@@ -13,17 +13,24 @@
 #define MOS_EDITOR_H
 
 #include "defines.h"
+#include "vec.h"
+
+enum TabExpansionType : uint8_t {
+	ExpandNormal,
+	ExpandDirectory,
+};
+
+typedef struct tab_expansion_t {
+	enum TabExpansionType type;
+	char *expansion;
+} tab_expansion_t;
 
 struct tab_expansion_context {
 	int num_matches;
 	char *cmdline;
 	int cmdline_insertpos;
 	char expansion[128];
-};
-
-enum TabExpansionType : uint8_t {
-	ExpandNormal,
-	ExpandDirectory,
+	Vec /*<tab_expansion_t>*/ candidates;
 };
 
 void notify_tab_expansion(struct tab_expansion_context *ctx, enum TabExpansionType type, const char *fullExpansion, int fullExpansionLen, const char *expansion, int expansionLen);

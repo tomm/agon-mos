@@ -4,7 +4,7 @@
 /**
  * Vec implementation optimized for small binary size -- not using
  * per-type code generation. Cost of this is imul on indexing operations.
- * This can be avoided by casting the vector->data to your type and 
+ * This can be avoided by casting the vector->data to your type and
  * indexing into that.
  *
  * On DEBUG builds there is kassert bounds checking.
@@ -35,5 +35,10 @@ extern bool vec_concat(Vec *v, const void *elems, size_t num_elems) __attribute_
 extern bool vec_resize(Vec *v, size_t num_elems) __attribute__((warn_unused_result("false indicates out-of-memory")));
 extern void vec_zero(Vec *v);
 static inline size_t vec_len(const Vec *v) { return v->len; }
+// Convenient and efficient. Note the icky casting on __i, to work around only
+// one type of variable being declarable in for loop scope...
+#define vec_foreach(v, T, item) for (T *item = (v)->data, *__i = (void *)((v)->len); \
+				     (size_t)__i > 0;                                \
+				     __i = (void *)(((size_t)__i) - 1), item++)
 
-#endif					   /* VEC_H */
+#endif /* VEC_H */

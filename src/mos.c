@@ -1685,9 +1685,9 @@ uint24_t mos_DIR(const char inputPath[static 1], bool longListing)
 	} else
 		paginated_printf("Directory: %s\n\n", dirPath);
 
-	for (size_t fno_num; fno_num < entries.len; fno_num++) {
+	vec_foreach(&entries, SmallFilInfo, fno)
+	{
 		if (paginated_exit) break;
-		struct SmallFilInfo *fno = vec_get(&entries, fno_num);
 		if (longListing) {
 			int yr, mo, da, hr, mi;
 			yr = (fno->fdate & 0xFE00) >> 9;  // Bits 15 to  9, from 1980
@@ -1724,9 +1724,9 @@ uint24_t mos_DIR(const char inputPath[static 1], bool longListing)
 	}
 
 cleanup:
-	for (int i = entries.len - 1; i >= 0; i--) {
-		struct SmallFilInfo *entry = vec_get(&entries, i);
-		if (entry->fname) umm_free(entry->fname);
+	vec_foreach(&entries, SmallFilInfo, item)
+	{
+		if (item->fname) umm_free(item->fname);
 	}
 	vec_free(&entries);
 	if (dirPath) umm_free(dirPath);

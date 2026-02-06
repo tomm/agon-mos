@@ -244,13 +244,26 @@ void notify_tab_expansion(struct tab_expansion_context *ctx, enum TabExpansionTy
 	DEBUG_STACK();
 
 	if (tab_complete_state_showall) {
-		if (ctx->num_matches == 0) printf("\r\n");
-		uint8_t oldTextFg = active_console->get_fg_color_index();
-		if (type != ExpandNormal) {
-			set_color(get_secondary_color());
+		bool oom = false;
+
+		tab_expansion_t e = {
+			.type = type,
+			.expansion = mos_strndup(fullExpansion, fullExpansionLen)
+		};
+
+		if (e.expansion == NULL) {
+			oom = true;
+		} else {
+			if (!vec_push(&ctx->candidates, &e)) {
+				oom = true;
+				umm_free(e.expansion);
+			}
 		}
-		printf("%.*s ", fullExpansionLen, fullExpansion);
-		set_color(oldTextFg);
+
+		if (oom) {
+			// out-of-memory fallback. just print the expansion now
+			printf("%.*s ", fullExpansionLen, fullExpansion);
+		}
 	}
 	if (ctx->num_matches == 0) {
 		size_t count = MIN((size_t)expansionLen, sizeof(ctx->expansion) - 1);
@@ -391,6 +404,58 @@ static char find_first_nonspace_chr(const char *str, int max)
 	return str[i];
 }
 
+static int cmp_tab_candidate(const tab_expansion_t *a, const tab_expansion_t *b)
+{
+	if (a->type == b->type) {
+		return strcasecmp(a->expansion, b->expansion);
+	} else if (a->type == ExpandDirectory) {
+		return -1;
+	} else {
+		return 1;
+	}
+}
+
+static void print_expansion_candidates(Vec *candidates)
+{
+	uint8_t oldTextFg = active_console->get_fg_color_index();
+	uint8_t longest_candidate = 0;
+
+	if (candidates->len > 1) {
+		qsort(candidates->data, candidates->len, sizeof(tab_expansion_t), (int (*)(const void *, const void *)) & cmp_tab_candidate);
+	}
+
+	// Find length of longest candidate
+	vec_foreach(candidates, tab_expansion_t, item)
+	{
+		const uint8_t l = strlen(item->expansion);
+		if (l > longest_candidate) longest_candidate = l;
+	}
+	longest_candidate = MIN(scrcols, longest_candidate + 1);
+	const uint8_t maxCols = MAX(1, scrcols / longest_candidate);
+
+	// newline away from partial CMD entry
+	printf("\n");
+	paginated_start(true);
+
+	uint8_t col = 0;
+	vec_foreach(candidates, tab_expansion_t, item)
+	{
+		if (col == maxCols) {
+			col = 0;
+			paginated_printf("\n");
+		}
+
+		if (item->type != ExpandNormal) {
+			set_color(get_secondary_color());
+		}
+		paginated_printf("%-*s", col == (maxCols - 1) ? longest_candidate - 1 : longest_candidate,
+		    item->expansion);
+		set_color(oldTextFg);
+		col++;
+	}
+	paginated_printf("\n");
+}
+
 static void do_tab_complete(char *buffer, int buffer_len, int *out_InsertPos)
 {
 	struct tab_expansion_context tab_ctx = {
@@ -401,6 +466,8 @@ static void do_tab_complete(char *buffer, int buffer_len, int *out_InsertPos)
 	};
 
 	DEBUG_STACK();
+
+	vec_init(&tab_ctx.candidates, sizeof(tab_expansion_t));
 
 	const char first_char = find_first_nonspace_chr(buffer, buffer_len);
 
@@ -413,7 +480,7 @@ static void do_tab_complete(char *buffer, int buffer_len, int *out_InsertPos)
 
 	const int num_chars_added = strlen(tab_ctx.expansion);
 	if (tab_ctx.num_matches > 0 && tab_complete_state_showall) {
-		printf("\n");
+		print_expansion_candidates(&tab_ctx.candidates);
 	}
 	if (tab_ctx.num_matches > 1 && num_chars_added == 0) {
 		tab_complete_state_showall = true;
@@ -445,6 +512,11 @@ static void do_tab_complete(char *buffer, int buffer_len, int *out_InsertPos)
 			doLeftCursor();
 		}
 	}
+
+	vec_foreach(&tab_ctx.candidates, tab_expansion_t, item) {
+		umm_free(item->expansion);
+	}
+	vec_free(&tab_ctx.candidates);
 }
 
 // The main line edit function
