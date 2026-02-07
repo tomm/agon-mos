@@ -19,6 +19,7 @@
 #include "../src_umm_malloc/umm_malloc.h"
 #include <stdbool.h>
 #include <stdint.h>
+#include "debug.h"
 
 /* For sanity */
 typedef int int24_t;
@@ -45,25 +46,6 @@ extern int _len_data;
 #define SPL_STACK_SIZE 5856
 
 #define HEAP_LEN ((int)__heaptop - (int)__heapbot)
-
-#ifdef DEBUG
-
-#define kassert(condition)                          \
-	{                                           \
-		if (!(condition)) {                 \
-			asm volatile("rst 0x38\n"); \
-		}                                   \
-	}
-extern uint24_t stack_highwatermark;
-void record_stack_highwatermark();
-#define DEBUG_STACK() record_stack_highwatermark()
-
-#else  /* !DEBUG */
-
-#define kassert(condition)
-#define DEBUG_STACK()
-
-#endif /* DEBUG */
 
 // VDP specific (for VDU 23,0,n commands)
 //
