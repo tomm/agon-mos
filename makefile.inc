@@ -29,12 +29,7 @@ LINKER=$(TOOLBINDIR)/ez80-none-elf-ld
 ifeq ($(LDHAS_ARG_PROCESSING),1)
 	LINKER_ARG=-defsym=_parse_option=___arg_processing
 endif
-ifeq ($(LDHAS_EXIT_HANDLER), 1)
-    LINKER_EXIT=-defsym=_has_exit_handler=1
-else
-    LINKER_EXIT=-defsym=_has_exit_handler=0
-endif
-LINKERFLAGS=$(LINKER_ARG) $(LINKER_EXIT) -Map=$(BINDIR)/$(NAME).map -T $(LINKERCONFIG) --oformat binary -o 
+LINKERFLAGS=$(LINKER_ARG) -Map=$(BINDIR)/$(NAME).map -T $(LINKERCONFIG) --oformat binary -o 
 LINKERLIBFLAGS=-L$(LIBDIR) -lagon
 SETPROGNAME=$(TOOLBINDIR)/agondev-setname
 
