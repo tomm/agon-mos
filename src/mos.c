@@ -786,7 +786,7 @@ int mos_cmdDEL(char *ptr)
 				break;
 			}
 
-			sprintf(fullPath, "%s/%s", dirPath, fno.fname); // Construct full path
+			snprintf(fullPath, fullPathLen, "%s/%s", dirPath, fno.fname); // Construct full path
 
 			if (!force) {
 				int24_t retval;
@@ -1113,7 +1113,7 @@ int mos_cmdMEM(char *ptr)
 	printf("Largest free MOS:HEAP fragment: %d b\r\n", try_len);
 	printf("Sysvars at &%06x\r\n", (uint24_t)sysvars);
 #ifdef DEBUG
-	printf("Stack highwatermark: &%06x (%d b)\r\rn", stack_highwatermark, (uint24_t)_stack - stack_highwatermark);
+	printf("Stack highwatermark: &%06x (%d b)\r\n", stack_highwatermark, (uint24_t)_stack - stack_highwatermark);
 #endif /* DEBUG */
 	printf("\r\n");
 
@@ -1829,8 +1829,8 @@ uint24_t mos_REN(char *srcPath, char *dstPath, bool verbose)
 				break;
 			}
 
-			sprintf(fullSrcPath, "%s%s", srcDir, fno.fname);
-			sprintf(fullDstPath, "%s%s%s", dstPath, (dstPath[strlen(dstPath) - 1] == '/' ? "" : "/"), fno.fname);
+			snprintf(fullSrcPath, srcPathLen, "%s%s", srcDir, fno.fname);
+			snprintf(fullDstPath, dstPathLen, "%s%s%s", dstPath, (dstPath[strlen(dstPath) - 1] == '/' ? "" : "/"), fno.fname);
 
 			if (verbose) printf("Moving %s to %s\r\n", fullSrcPath, fullDstPath);
 			fr = f_rename(fullSrcPath, fullDstPath);
@@ -1856,7 +1856,7 @@ uint24_t mos_REN(char *srcPath, char *dstPath, bool verbose)
 			}
 			srcFilename = strrchr(srcPath, '/');
 			srcFilename = (srcFilename != NULL) ? srcFilename + 1 : srcPath;
-			sprintf(fullDstPath, "%s%s%s", dstPath, (dstPath[strlen(dstPath) - 1] == '/' ? "" : "/"), srcFilename);
+			snprintf(fullDstPath, fullDstPathLen, "%s%s%s", dstPath, (dstPath[strlen(dstPath) - 1] == '/' ? "" : "/"), srcFilename);
 
 			fr = f_rename(srcPath, fullDstPath);
 			umm_free(fullDstPath);
@@ -1956,8 +1956,8 @@ uint24_t mos_COPY(char *srcPath, char *dstPath, bool verbose)
 				goto file_cleanup;
 			}
 
-			sprintf(fullSrcPath, "%s%s", srcDir, fno->fname);
-			sprintf(fullDstPath, "%s%s%s", dstPath, (dstPath[strlen(dstPath) - 1] == '/' ? "" : "/"), fno->fname);
+			snprintf(fullSrcPath, srcPathLen, "%s%s", srcDir, fno->fname);
+			snprintf(fullDstPath, dstPathLen, "%s%s%s", dstPath, (dstPath[strlen(dstPath) - 1] == '/' ? "" : "/"), fno->fname);
 
 			fr = f_open(&fsrc, fullSrcPath, FA_READ);
 			if (fr != FR_OK) goto file_cleanup;
